@@ -46,7 +46,7 @@ public interface IItemStack extends ICapabilitySerializable<CompoundTag>, IModul
         public void setStackSize(int size) {}
 
         @Override
-        public int stackSizeMax() {return 0;}
+        public int stackSizeMax() {return 64;}
 
         @Override
         public int damage() {return 0;}

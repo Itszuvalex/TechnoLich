@@ -92,7 +92,7 @@ public class TestableIItemStack implements IItemStack {
 
     @Override
     public boolean isEmpty() {
-        return stackSize() > 0;
+        return stackSize() <= 0;
     }
 
     @Override
