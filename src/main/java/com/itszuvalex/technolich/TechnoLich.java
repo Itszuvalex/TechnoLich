@@ -15,11 +15,13 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Locale;
 import java.util.stream.Collectors;
 
-@Mod(TechnoLich.NAME)
+@Mod(TechnoLich.NAMELOWER)
 public class TechnoLich {
     public static final String NAME = "TechnoLich";
+    public static final String NAMELOWER = "technolich";
     private static final Logger LOGGER = LogManager.getLogger();
 
     public TechnoLich() {
