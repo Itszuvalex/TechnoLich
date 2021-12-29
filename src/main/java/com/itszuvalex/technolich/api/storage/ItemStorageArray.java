@@ -18,6 +18,10 @@ public class ItemStorageArray implements IItemStorage {
                 .forEach((i) -> storage[i] = IItemStack.Empty);
     }
 
+    public ItemStorageArray(int size) {
+        this(new IItemStack[size]);
+    }
+
     @Override
     public @NotNull
     @Nonnull

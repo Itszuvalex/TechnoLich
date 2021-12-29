@@ -1,5 +1,7 @@
 package com.itszuvalex.technolich.api.adapters;
 
+import com.itszuvalex.technolich.api.utility.INBTObjectSerializer;
+import com.itszuvalex.technolich.api.utility.Overideable;
 import com.itszuvalex.technolich.api.wrappers.WrapperVanillaItemStack;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -86,8 +88,20 @@ public interface IItemStack extends ICapabilitySerializable<CompoundTag>, IModul
         public void writeToNBT(@NotNull @Nonnull CompoundTag nbt) {}
     };
 
+    Overideable<INBTObjectSerializer<IItemStack, CompoundTag>> NBT_SERIALIZER = new Overideable<>(new INBTObjectSerializer<IItemStack, CompoundTag>() {
+        @Override
+        public void serialize(IItemStack obj, CompoundTag tag) {
+            obj.writeToNBT(tag);
+        }
+
+        @Override
+        public IItemStack deserialize(CompoundTag tag) {
+            return new WrapperVanillaItemStack(ItemStack.of(tag));
+        }
+    });
+
     static IItemStack of(CompoundTag nbt) {
-        return new WrapperVanillaItemStack(ItemStack.of(nbt));
+        return NBT_SERIALIZER.get().deserialize(nbt);
     }
 
     ResourceLocation item();

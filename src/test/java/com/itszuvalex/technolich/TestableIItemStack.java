@@ -2,6 +2,7 @@ package com.itszuvalex.technolich;
 
 import com.itszuvalex.technolich.api.adapters.IItemStack;
 import com.itszuvalex.technolich.api.adapters.IModule;
+import com.itszuvalex.technolich.api.utility.INBTObjectSerializer;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -15,6 +16,25 @@ import org.junit.jupiter.api.Assertions;
 import java.util.Optional;
 
 public class TestableIItemStack implements IItemStack {
+    public static void overrideNBTSerializer() {
+        IItemStack.NBT_SERIALIZER.setOverrideValue(new INBTObjectSerializer<IItemStack, CompoundTag>() {
+            @Override
+            public void serialize(IItemStack obj, CompoundTag tag) {
+                obj.writeToNBT(tag);
+            }
+
+            @Override
+            public IItemStack deserialize(CompoundTag tag) {
+                var ret = new TestableIItemStack();
+                ret.deserializeNBT(tag);
+                return ret;
+            }
+        });
+    }
+    public static void resetNBTSerializer() {
+        IItemStack.NBT_SERIALIZER.revert();
+    }
+
     public static final String ITEM_KEY = "Item";
     public static final String STACK_KEY = "Stack";
     public static final String DAMAGE_KEY = "Damage";
