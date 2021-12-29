@@ -96,7 +96,8 @@ public interface IItemStack extends ICapabilitySerializable<CompoundTag>, IModul
 
         @Override
         public IItemStack deserialize(CompoundTag tag) {
-            return new WrapperVanillaItemStack(ItemStack.of(tag));
+            var stack = ItemStack.of(tag);
+            return stack == ItemStack.EMPTY ? IItemStack.Empty : new WrapperVanillaItemStack(stack);
         }
     });
 

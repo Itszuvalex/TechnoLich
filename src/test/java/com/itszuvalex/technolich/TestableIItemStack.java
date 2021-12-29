@@ -31,6 +31,7 @@ public class TestableIItemStack implements IItemStack {
             }
         });
     }
+
     public static void resetNBTSerializer() {
         IItemStack.NBT_SERIALIZER.revert();
     }
@@ -54,6 +55,7 @@ public class TestableIItemStack implements IItemStack {
     public TestableIItemStack(int item) {
         this(item, 1, 0);
     }
+
     public TestableIItemStack(int item, int stack) {
         this(item, stack, 0);
     }
@@ -118,7 +120,7 @@ public class TestableIItemStack implements IItemStack {
     @Override
     public @NotNull IItemStack copy() {
         var ret = new TestableIItemStack(testItem, testStack, testDamage);
-        ret.testNBT = Optional.of(testNBT).orElse(null);
+        ret.testNBT = Optional.ofNullable(testNBT).map(CompoundTag::copy).orElse(null);
         return ret;
     }
 
