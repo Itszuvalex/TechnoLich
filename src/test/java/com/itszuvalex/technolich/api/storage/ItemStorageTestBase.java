@@ -22,14 +22,62 @@ public abstract class ItemStorageTestBase {
         TestableIItemStack.resetNBTSerializer();
     }
 
-    interface ITestState {
-        IItemStorage storage();
+    public abstract IItemStorage storageWithSize(int size);
 
-        int testLength();
+    class TestState {
+        public static int SIZE = 10;
+        public TestableIItemStack item0;
+        public TestableIItemStack item1;
+        public TestableIItemStack item2;
+        public TestableIItemStack item3;
+        public TestableIItemStack item4;
+        public TestableIItemStack item5;
+        public TestableIItemStack item6;
+        public IItemStorage storage;
+
+        public TestState() {
+            storage = storageWithSize(SIZE);
+            item0 = new TestableIItemStack(1, 1);
+            item1 = new TestableIItemStack(1, 5);
+            item2 = new TestableIItemStack(1, 10);
+            item3 = new TestableIItemStack(1, 1, 1);
+            item4 = new TestableIItemStack(1, 2, 2);
+            item5 = new TestableIItemStack(2);
+            item6 = new TestableIItemStack(2, 3, 1);
+            storage.setSlot(0, item0);
+            storage.setSlot(1, item1);
+            storage.setSlot(2, item2);
+            storage.setSlot(3, item3);
+            storage.setSlot(4, item4);
+            storage.setSlot(5, item5);
+            storage.setSlot(6, item6);
+        }
+
+        public IItemStorage storage() {
+            return storage;
+        }
+
+        public int testLength() {
+            return SIZE;
+        }
     }
 
 
-    public abstract ITestState getState();
+    public TestState getState() {
+        return new TestState();
+    }
+
+    @Test
+    void SetSlot_SetsSlot() {
+        // Arrange
+        var storage = storageWithSize(1);
+        MCAssert.assertIItemStackEmpty(storage.get(0));
+        // Act
+        storage.setSlot(0, new TestableIItemStack(1, 3));
+        // Assert
+        MCAssert.assertIItemStackNotEmpty(storage.get(0));
+        Assertions.assertEquals(3, storage.get(0).stackSize());
+    }
 
     @Test
     void Size_Always_EqualsArrayLength() {
@@ -169,6 +217,163 @@ public abstract class ItemStorageTestBase {
         Assertions.assertEquals(ret.stackSize(), ins.stackSize());
         Assertions.assertTrue(slotCopy.isItemEqual(state.storage().get(1)));
         Assertions.assertEquals(slotCopy.stackSize(), state.storage().get(1).stackSize());
+    }
+
+    // Doesn't use state
+
+    @Test
+    void TransferIntoStorage_OneStackInFirstRoomInSecond_EmptyFirstInventoryInsertIntoSecond() {
+        // Arrange
+        var emptyitem = new TestableIItemStack(1, 1);
+        var emptying = storageWithSize(1);
+        emptying.setSlot(0, emptyitem);
+        var filling = storageWithSize(1);
+        filling.setSlot(0, IItemStack.Empty);
+        // Act
+        var ret = emptying.transferIntoStorage(filling, 1);
+        // Assert
+        MCAssert.assertIItemStackEmpty(emptying.get(0));
+        MCAssert.assertIItemStackNotEmpty(filling.get(0));
+        Assertions.assertEquals(1, filling.get(0).stackSize());
+        Assertions.assertEquals(0, ret);
+    }
+
+    @Test
+    void TransferIntoStorage_TransferSomeOfEntireStack_ReduceFirstInsertSecond() {
+        // Arrange
+        var emptyitem = new TestableIItemStack(1, 2);
+        var emptying = storageWithSize(1);
+        emptying.setSlot(0, emptyitem);
+        var filling = storageWithSize(1);
+        filling.setSlot(0, IItemStack.Empty);
+        // Act
+        var ret = emptying.transferIntoStorage(filling, 1);
+        // Assert
+        MCAssert.assertIItemStackNotEmpty(emptying.get(0));
+        Assertions.assertEquals(1, emptying.get(0).stackSize());
+        MCAssert.assertIItemStackNotEmpty(filling.get(0));
+        Assertions.assertEquals(1, filling.get(0).stackSize());
+        Assertions.assertEquals(0, ret);
+    }
+
+    @Test
+    void TransferIntoStorage_TransferRequestMoreThanExists_EmptyFirstInsertSecondReturnRemaining() {
+        // Arrange
+        var emptyitem = new TestableIItemStack(1, 1);
+        var emptying = storageWithSize(1);
+        emptying.setSlot(0, emptyitem);
+        var filling = storageWithSize(1);
+        filling.setSlot(0, IItemStack.Empty);
+        // Act
+        var ret = emptying.transferIntoStorage(filling, 2);
+        // Assert
+        MCAssert.assertIItemStackEmpty(emptying.get(0));
+        MCAssert.assertIItemStackNotEmpty(filling.get(0));
+        Assertions.assertEquals(1, filling.get(0).stackSize());
+        Assertions.assertEquals(1, ret);
+    }
+
+    @Test
+    void TransferIntoStorage_MultipleOfItemIntoMostlyFilledStack_OverflowIntoSecondSlot() {
+        // Arrange
+        var emptyitem = new TestableIItemStack(1, 5);
+        var emptying = storageWithSize(1);
+        emptying.setSlot(0, emptyitem);
+        var filling = storageWithSize(2);
+        filling.setSlot(0, new TestableIItemStack(1, 63));
+        filling.setSlot(1, new TestableIItemStack(1, 1));
+        // Act
+        var ret = emptying.transferIntoStorage(filling, 2);
+        // Assert
+        MCAssert.assertIItemStackNotEmpty(emptying.get(0));
+        Assertions.assertEquals(3, emptying.get(0).stackSize());
+        MCAssert.assertIItemStackNotEmpty(filling.get(0));
+        MCAssert.assertIItemStackNotEmpty(filling.get(1));
+        Assertions.assertEquals(64, filling.get(0).stackSize());
+        Assertions.assertEquals(2, filling.get(1).stackSize());
+        Assertions.assertEquals(0, ret);
+    }
+
+    @Test
+    void TransferIntoStorage_TransferMultipleTypesOfItems() {
+        // Arrange
+        var emptying = storageWithSize(2);
+        var emptyitem0 = new TestableIItemStack(0);
+        var emptyitem1 = new TestableIItemStack(1);
+        emptying.setSlot(0, emptyitem0);
+        emptying.setSlot(1, emptyitem1);
+        var filling = storageWithSize(2);
+        filling.setSlot(0, IItemStack.Empty);
+        filling.setSlot(1, IItemStack.Empty);
+        // Act
+        var ret = emptying.transferIntoStorage(filling, 2);
+        // Assert
+        MCAssert.assertIItemStackEmpty(emptying.get(0));
+        MCAssert.assertIItemStackEmpty(emptying.get(1));
+        MCAssert.assertIItemStackNotEmpty(filling.get(0));
+        Assertions.assertEquals(1, filling.get(0).stackSize());
+        Assertions.assertEquals(0, ((TestableIItemStack) filling.get(0)).testItem);
+        MCAssert.assertIItemStackNotEmpty(filling.get(1));
+        Assertions.assertEquals(1, filling.get(1).stackSize());
+        Assertions.assertEquals(1, ((TestableIItemStack) filling.get(1)).testItem);
+        Assertions.assertEquals(0, ret);
+    }
+
+    @Test
+    void TransferIntoStorage_MergeItemsTogether() {
+        // Arrange
+        var emptying = storageWithSize(2);
+        var emptyitem0 = new TestableIItemStack(1);
+        var emptyitem1 = new TestableIItemStack(1);
+        emptying.setSlot(0, emptyitem0);
+        emptying.setSlot(1, emptyitem1);
+        var filling = storageWithSize(1);
+        filling.setSlot(0, IItemStack.Empty);
+        // Act
+        var ret = emptying.transferIntoStorage(filling, 2);
+        // Assert
+        MCAssert.assertIItemStackEmpty(emptying.get(0));
+        MCAssert.assertIItemStackEmpty(emptying.get(1));
+        MCAssert.assertIItemStackNotEmpty(filling.get(0));
+        Assertions.assertEquals(2, filling.get(0).stackSize());
+        Assertions.assertEquals(0, ret);
+    }
+
+    @Test
+    void TransferIntoStorage_PrioritizeMatchingOverEmptySlot() {
+        // Arrange
+        var emptying = storageWithSize(1);
+        var emptyitem = new TestableIItemStack(1, 1);
+        emptying.setSlot(0, emptyitem);
+        var filling = storageWithSize(2);
+        filling.setSlot(0, IItemStack.Empty);
+        filling.setSlot(1, new TestableIItemStack(1, 1));
+        // Act
+        var ret = emptying.transferIntoStorage(filling, 1);
+        // Assert
+        MCAssert.assertIItemStackEmpty(emptying.get(0));
+        MCAssert.assertIItemStackEmpty(filling.get(0));
+        MCAssert.assertIItemStackNotEmpty(filling.get(1));
+        Assertions.assertEquals(2, filling.get(1).stackSize());
+        Assertions.assertEquals(0, ret);
+    }
+
+    @Test
+    void TransferIntoStorage_MoveNothingIfNoRoom() {
+        // Arrange
+        var emptying = storageWithSize(1);
+        var emptyitem = new TestableIItemStack(1, 1);
+        emptying.setSlot(0, emptyitem);
+        var filling = storageWithSize(1);
+        filling.setSlot(0, new TestableIItemStack(2, 1));
+        // Act
+        var ret = emptying.transferIntoStorage(filling, 1);
+        // Assert
+        MCAssert.assertIItemStackNotEmpty(emptying.get(0));
+        Assertions.assertEquals(1, emptying.get(0).stackSize());
+        MCAssert.assertIItemStackNotEmpty(filling.get(0));
+        Assertions.assertEquals(1, filling.get(0).stackSize());
+        Assertions.assertEquals(1, ret);
     }
 
     @Test
