@@ -3,6 +3,7 @@ package com.itszuvalex.technolich.api.storage;
 import com.itszuvalex.technolich.MCAssert;
 import com.itszuvalex.technolich.TestableIItemStack;
 import com.itszuvalex.technolich.api.adapters.IItemStack;
+import com.itszuvalex.technolich.api.utility.MCConstants;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -184,7 +185,7 @@ public abstract class ItemStorageTestBase {
         MCAssert.assertIItemStackNotEmpty(ret);
         Assertions.assertTrue(ins.isItemEqual(ret));
         MCAssert.assertIItemStackNotEmpty(state.storage().get(1));
-        Assertions.assertEquals(64, state.storage().get(1).stackSize());
+        Assertions.assertEquals(MCConstants.ITEMSTACK_MAX, state.storage().get(1).stackSize());
         Assertions.assertEquals(4, ret.stackSize());
     }
 
@@ -199,7 +200,7 @@ public abstract class ItemStorageTestBase {
         var ret = state.storage().insert(9, ins);
         // Assert
         Assertions.assertTrue(ret.isItemEqual(ins));
-        Assertions.assertEquals(200 - 64, ret.stackSize());
+        Assertions.assertEquals(200 - MCConstants.ITEMSTACK_MAX, ret.stackSize());
         Assertions.assertTrue(state.storage().get(9).isItemEqual(ins));
         Assertions.assertEquals(state.storage().get(9).stackSize(), state.storage().maxStackSize(9));
     }
@@ -289,7 +290,7 @@ public abstract class ItemStorageTestBase {
         Assertions.assertEquals(3, emptying.get(0).stackSize());
         MCAssert.assertIItemStackNotEmpty(filling.get(0));
         MCAssert.assertIItemStackNotEmpty(filling.get(1));
-        Assertions.assertEquals(64, filling.get(0).stackSize());
+        Assertions.assertEquals(MCConstants.ITEMSTACK_MAX, filling.get(0).stackSize());
         Assertions.assertEquals(2, filling.get(1).stackSize());
         Assertions.assertEquals(0, ret);
     }

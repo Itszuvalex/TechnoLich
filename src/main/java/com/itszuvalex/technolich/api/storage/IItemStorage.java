@@ -2,6 +2,7 @@ package com.itszuvalex.technolich.api.storage;
 
 import com.itszuvalex.technolich.api.adapters.IItemStack;
 import com.itszuvalex.technolich.api.utility.BoxCounter;
+import com.itszuvalex.technolich.api.utility.MCConstants;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraftforge.common.util.INBTSerializable;
 import org.jetbrains.annotations.NotNull;
@@ -36,7 +37,7 @@ public interface IItemStorage extends INBTSerializable<CompoundTag> {
     default boolean canInsert(int index, @NotNull @Nonnull IItemStack stack) {return true;}
 
     default int maxStackSize(int index) {
-        return Math.min(64, get(index).stackSizeMax());
+        return Math.min(MCConstants.ITEMSTACK_MAX, get(index).stackSizeMax());
     }
 
     default IItemStack split(int index, int amount) {

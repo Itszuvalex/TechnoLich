@@ -1,6 +1,7 @@
 package com.itszuvalex.technolich.api.adapters;
 
 import com.itszuvalex.technolich.api.utility.INBTObjectSerializer;
+import com.itszuvalex.technolich.api.utility.MCConstants;
 import com.itszuvalex.technolich.api.utility.Overideable;
 import com.itszuvalex.technolich.api.wrappers.WrapperVanillaItemStack;
 import net.minecraft.core.Direction;
@@ -48,7 +49,7 @@ public interface IItemStack extends ICapabilitySerializable<CompoundTag>, IModul
         public void setStackSize(int size) {}
 
         @Override
-        public int stackSizeMax() {return 64;}
+        public int stackSizeMax() {return MCConstants.ITEMSTACK_MAX;}
 
         @Override
         public int damage() {return 0;}
