@@ -1,9 +1,7 @@
 package com.itszuvalex.technolich.api.utility;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.util.INBTSerializable;
@@ -19,7 +17,7 @@ public abstract class Loc4 implements Comparable<Loc4>, INBTSerializable<Compoun
 
     public abstract @NotNull
     @Nonnull
-    ResourceKey<Level> dimension();
+    ResourceLocation dimensionId();
 
     public abstract @NotNull
     @Nonnull
@@ -65,9 +63,27 @@ public abstract class Loc4 implements Comparable<Loc4>, INBTSerializable<Compoun
         return new Loc4Level(level, pos);
     }
 
+    public double distSqr(@NotNull @Nonnull Loc4 other) {
+        if (!other.dimensionId().equals(dimensionId())) return Double.MAX_VALUE;
+        return distSqr(other.x(), other.y(), other.z());
+    }
+
+    public double distSqr(int x, int y, int z) {
+        return (x() - x) * (x() - x) + (y() - y) * (y() - y) + (z() - z) * (z() - z);
+    }
+
+    public double dist(@NotNull @Nonnull Loc4 other) {
+        if (!other.dimensionId().equals(dimensionId())) return Float.MAX_VALUE;
+        return dist(other.x(), other.y(), other.z());
+    }
+
+    public double dist(int x, int y, int z) {
+        return Math.sqrt(distSqr(x, y, z));
+    }
+
     @Override
     public int compareTo(@NotNull @Nonnull Loc4 o) {
-        int dim = dimension().compareTo(o.dimension());
+        int dim = dimensionId().compareTo(o.dimensionId());
         if (dim != 0) return dim;
 
         int xl = Integer.compare(x(), o.x());
@@ -85,11 +101,11 @@ public abstract class Loc4 implements Comparable<Loc4>, INBTSerializable<Compoun
         tag.putInt(X_KEY, x());
         tag.putInt(Y_KEY, y());
         tag.putInt(Z_KEY, z());
-        tag.putString(DIM_KEY, dimension().location().toString());
+        tag.putString(DIM_KEY, dimensionId().toString());
         return tag;
     }
 
-    public static Loc4 of(@NotNull @Nonnull ResourceKey<Level> worldId, @NotNull @Nonnull BlockPos loc) {
+    public static Loc4 of(@NotNull @Nonnull ResourceLocation worldId, @NotNull @Nonnull BlockPos loc) {
         return new Loc4Indirect(worldId, loc);
     }
 
@@ -102,12 +118,11 @@ public abstract class Loc4 implements Comparable<Loc4>, INBTSerializable<Compoun
         int y = nbt.getInt(Y_KEY);
         int z = nbt.getInt(Z_KEY);
         String loc = nbt.getString(DIM_KEY);
-        var key = ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation(loc));
+        var key = new ResourceLocation(loc);
         return Loc4.of(key, new BlockPos(x, y, z));
     }
 
-
-    public static Loc4 ORIGIN = Loc4.of(Level.OVERWORLD, new BlockPos(0, 0, 0));
+    public static Loc4 ORIGIN = Loc4.of(new ResourceLocation("overworld"), new BlockPos(0, 0, 0));
     public static String X_KEY = "x";
     public static String Y_KEY = "y";
     public static String Z_KEY = "z";
@@ -118,13 +133,13 @@ public abstract class Loc4 implements Comparable<Loc4>, INBTSerializable<Compoun
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Loc4 loc4 = (Loc4) o;
-        if (!dimension().location().equals(((Loc4) o).dimension().location())) return false;
+        if (!dimensionId().equals(((Loc4) o).dimensionId())) return false;
         return pos.equals(loc4.pos);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(dimension().location(), pos);
+        return Objects.hash(dimensionId(), pos);
     }
 }
 

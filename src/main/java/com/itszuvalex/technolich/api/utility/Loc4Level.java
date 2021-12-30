@@ -2,7 +2,7 @@ package com.itszuvalex.technolich.api.utility;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 
@@ -16,15 +16,15 @@ public class Loc4Level extends Loc4 {
         this.pos = pos;
     }
 
-    @NotNull @Nonnull
+    @NotNull
+    @Nonnull
     public Level level() {
         return level;
     }
 
-    @NotNull
     @Override
-    public ResourceKey<Level> dimension() {
-        return level().dimension();
+    public @NotNull ResourceLocation dimensionId() {
+        return level().dimension().location();
     }
 
     @NotNull

@@ -3,20 +3,20 @@ package com.itszuvalex.technolich.api.utility;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
 import org.jetbrains.annotations.NotNull;
 
 public class Loc4Indirect extends Loc4 {
-    private ResourceKey<Level> worldId;
+    private ResourceLocation worldId;
 
-    public Loc4Indirect(ResourceKey<Level> worldId, BlockPos pos) {
+    public Loc4Indirect(ResourceLocation worldId, BlockPos pos) {
         this.worldId = worldId;
         this.pos = pos;
     }
 
-    @NotNull
     @Override
-    public ResourceKey<Level> dimension() {
+    public @NotNull ResourceLocation dimensionId() {
         return worldId;
     }
 

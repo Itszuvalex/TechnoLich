@@ -1,5 +1,7 @@
 package com.itszuvalex.technolich.api.utility;
 
+import com.google.common.math.LongMath;
+import com.mojang.math.Vector3f;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.NotNull;
 
@@ -19,14 +21,14 @@ public class LocationTracker {
 
     public void trackLocation(@Nonnull @NotNull Loc4 loc) {
         FunctionalHelpers.getOrElseUpdate(
-                FunctionalHelpers.getOrElseUpdate(trackerMap, loc.dimension().location(), HashMap::new),
+                FunctionalHelpers.getOrElseUpdate(trackerMap, loc.dimensionId(), HashMap::new),
                 loc.getChunkCoords(),
                 HashSet::new
         ).add(loc);
     }
 
     public void removeLocation(@Nonnull @NotNull Loc4 loc) {
-        var locloc = loc.dimension().location();
+        var locloc = loc.dimensionId();
         if (!trackerMap.containsKey(locloc)) return;
         var dimMap = trackerMap.get(locloc);
         var coords = loc.getChunkCoords();
@@ -36,7 +38,7 @@ public class LocationTracker {
     }
 
     public boolean isLocationTracked(@Nonnull @NotNull Loc4 loc) {
-        var locloc = loc.dimension().location();
+        var locloc = loc.dimensionId();
         if (!trackerMap.containsKey(locloc)) return false;
         var dimMap = trackerMap.get(locloc);
         var coords = loc.getChunkCoords();
@@ -87,6 +89,83 @@ public class LocationTracker {
                 .ifPresent(HashSet::clear);
     }
 
+    public @Nonnull
+    @NotNull Stream<Loc4> getLocationsInRange(@NotNull @Nonnull Loc4 loc, float range) {
+        int radius = (int) Math.ceil(range / MCConstants.CHUNK_SIZE);
+        var chunkCoords = ChunkCoord.of(loc.getPos());
+        long rsqr;
+        try {
+            rsqr = LongMath.checkedMultiply(radius, radius);
+        } catch (ArithmeticException e) {
+            rsqr = -1;
+        }
+
+        Stream<ChunkCoord> chunksToCheck;
+        // If (radius in chunks) ^2 (total chunks in a 2d square) is greater than the number of chunks tracked,
+        // Just go through all tracked chunks instead of generating every chunk and checking HashMap for key existence.
+        // Otherwise, say for example we're tracking 100 chunks and we're looking for in a 3x3 grid,
+        // Then we should just check for the existence of 9 keys instead of iterating over 100 chunks.
+        if ((rsqr > 0) // if radius is too large, don't gen coords to check
+                && rsqr < FunctionalHelpers
+                .getOptional(trackerMap, loc.dimensionId()).map(HashMap::size).orElse(0)) {
+            chunksToCheck = getChunkCoordsInRadius(chunkCoords, radius);
+        } else {
+            chunksToCheck = getChunkCoordsInRadiusInDim(chunkCoords, radius, loc.dimensionId());
+        }
+
+        double rangesqr = range * range;
+
+        return chunksToCheck.flatMap((chunkCoord) ->
+                getLocationsInChunk(loc.dimensionId(), chunkCoord)
+        ).filter((lo) -> lo.distSqr(loc) <= rangesqr);
+    }
+
+    public @NotNull
+    @Nonnull
+    Stream<Loc4> getLocationsInRange(@NotNull @Nonnull ResourceLocation dim,
+                                     Vector3f loc, float range) {
+        var chunkCoords = new ChunkCoord(((int) loc.x()) >> 4, ((int) loc.z()) >> 4);
+        int radius = (int) Math.ceil(range / MCConstants.CHUNK_SIZE);
+        long rsqr;
+        try {
+            rsqr = LongMath.checkedMultiply(radius, radius);
+        } catch (ArithmeticException e) {
+            rsqr = -1;
+        }
+
+        Stream<ChunkCoord> chunksToCheck;
+        // If (radius in chunks) ^2 (total chunks in a 2d square) is greater than the number of chunks tracked,
+        // Just go through all tracked chunks instead of generating every chunk and checking HashMap for key existence.
+        // Otherwise, say for example we're tracking 100 chunks and we're looking for in a 3x3 grid,
+        // Then we should just check for the existence of 9 keys instead of iterating over 100 chunks.
+        if ((rsqr > 0) // if radius is too large, don't gen coords to check
+                && rsqr < FunctionalHelpers
+                .getOptional(trackerMap, dim).map(HashMap::size).orElse(0)) {
+            chunksToCheck = getChunkCoordsInRadius(chunkCoords, radius);
+        } else {
+            chunksToCheck = getChunkCoordsInRadiusInDim(chunkCoords, radius, dim);
+        }
+
+        double rangesqr = range * range;
+
+        return chunksToCheck.flatMap((chunkCoord) ->
+                getLocationsInChunk(dim, chunkCoord)
+        ).filter((lo) ->
+                ((lo.x() - loc.x()) * (lo.x() - loc.x()) *
+                        (lo.y() - loc.y()) * (lo.y() - loc.y()) *
+                        (lo.z() - loc.z()) * (lo.z() - loc.z()))
+                        <= rangesqr);
+    }
+
+    @Nonnull
+    @NotNull
+    Stream<Loc4> getLocationsInChunk(@Nonnull @NotNull ResourceLocation dim, @NotNull @Nonnull ChunkCoord chunkLoc) {
+        return FunctionalHelpers.getOptional(trackerMap, dim)
+                .map((i) -> i.get(chunkLoc))
+                .stream()
+                .flatMap(Collection::stream);
+    }
+
     private @NotNull
     @Nonnull
     Stream<ChunkCoord> getChunkCoordsInRadius(@NotNull @Nonnull ChunkCoord coords, int blockRadius) {
@@ -104,8 +183,6 @@ public class LocationTracker {
                                                    @NotNull @Nonnull ResourceLocation dim) {
         return FunctionalHelpers.getOptional(trackerMap, dim)
                 .map(HashMap::keySet).stream().flatMap(Collection::stream)
-                .filter((floc) ->
-                        (floc.chunkX() >= (loc.chunkX() - radius) && floc.chunkX() <= (loc.chunkX() + radius)) &&
-                                (floc.chunkZ() >= (loc.chunkZ() - radius) && floc.chunkZ() <= (loc.chunkZ() + radius)));
+                .filter((floc) -> floc.inRangeOf(loc, radius));
     }
 }
