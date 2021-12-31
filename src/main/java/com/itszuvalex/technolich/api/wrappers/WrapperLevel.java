@@ -12,4 +12,13 @@ public class WrapperLevel implements ILevel {
         this.level = level;
     }
 
+    @Override
+    public boolean isClientSide() {
+        return level.isClientSide();
+    }
+
+    @Override
+    public @NotNull Level toMinecraft() {
+        return level;
+    }
 }
