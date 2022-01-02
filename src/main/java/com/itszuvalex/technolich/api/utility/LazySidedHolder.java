@@ -3,6 +3,7 @@ package com.itszuvalex.technolich.api.utility;
 import com.itszuvalex.technolich.api.adapters.ILevel;
 import net.minecraft.world.level.Level;
 import net.minecraftforge.common.util.Lazy;
+import net.minecraftforge.fml.LogicalSide;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -29,6 +30,10 @@ public class LazySidedHolder<T> implements ILevelBasedSupplier<T> {
     @Override
     public Optional<T> get(Level level) {
         return getSided(level.isClientSide());
+    }
+
+    public Optional<T> get(LogicalSide side) {
+        return (this.side == side) ? Optional.of(obj.get()) : Optional.empty();
     }
 
     private Optional<T> getSided(boolean clientSide) {

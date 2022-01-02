@@ -1,14 +1,17 @@
 package com.itszuvalex.technolich.api.utility;
 
+import com.itszuvalex.technolich.api.adapters.IBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.common.util.INBTSerializable;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import java.util.Objects;
+import java.util.Optional;
 
 public abstract class Loc4 implements Comparable<Loc4>, INBTSerializable<CompoundTag> {
     protected @NotNull
@@ -62,6 +65,14 @@ public abstract class Loc4 implements Comparable<Loc4>, INBTSerializable<Compoun
     Loc4 anchor(@NotNull @Nonnull Level level) {
         return new Loc4Level(level, pos);
     }
+
+    public abstract @NotNull
+    @Nonnull
+    Optional<IBlockEntity> getIBlockEntity(boolean force);
+
+    public abstract @NotNull
+    @Nonnull
+    Optional<BlockEntity> getBlockEntity(boolean force);
 
     public double distSqr(@NotNull @Nonnull Loc4 other) {
         if (!other.dimensionId().equals(dimensionId())) return Double.MAX_VALUE;

@@ -1,12 +1,17 @@
 package com.itszuvalex.technolich;
 
+import com.itszuvalex.technolich.api.utility.LazySidedHolder;
+import com.itszuvalex.technolich.core.NetworkManager;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
+import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.InterModComms;
+import net.minecraftforge.fml.LogicalSide;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.InterModEnqueueEvent;
@@ -15,7 +20,6 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Mod(TechnoLich.NAMELOWER)
@@ -23,6 +27,8 @@ public class TechnoLich {
     public static final String NAME = "TechnoLich";
     public static final String NAMELOWER = "technolich";
     private static final Logger LOGGER = LogManager.getLogger();
+
+    public static final LazySidedHolder<NetworkManager> NETWORK_MANAGER = new LazySidedHolder<>(NetworkManager::new, LogicalSide.SERVER);
 
     public TechnoLich() {
         // Register the setup method for modloading
@@ -62,6 +68,19 @@ public class TechnoLich {
     public void onServerStarting(ServerStartingEvent event) {
         // do something when the server starts
         LOGGER.info("HELLO from server starting");
+    }
+
+    @SubscribeEvent
+    public void onServerStopped(ServerStoppedEvent event) {
+        NETWORK_MANAGER.get(LogicalSide.SERVER).ifPresent(NetworkManager::clear);
+    }
+
+    @SubscribeEvent
+    public void onServerTick(TickEvent.ServerTickEvent event) {
+        switch (event.phase) {
+            case START -> NETWORK_MANAGER.get(LogicalSide.SERVER).ifPresent(NetworkManager::onTickStart);
+            case END -> NETWORK_MANAGER.get(LogicalSide.SERVER).ifPresent(NetworkManager::onTickEnd);
+        }
     }
 
     // You can use EventBusSubscriber to automatically subscribe events on the contained class (this is subscribing to the MOD

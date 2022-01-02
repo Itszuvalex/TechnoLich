@@ -5,6 +5,8 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 /**
@@ -75,8 +77,17 @@ public interface INetwork<C extends INetworkNode<C, N>, N extends INetwork<C, N>
      *
      * @return All connections, mapped by location.
      */
+    @Nonnull
+    @NotNull
+    Map<Loc4, Set<Loc4>> getConnections();
+
+    /**
+     *
+     * @param loc Location to get connections for
+     * @return Optional.empty() if loc not tracked, otherwise a stream containing all locations the loc is connected to.
+     */
     @NotNull @Nonnull
-    Map<Loc4, Stream<Loc4>> getConnections();
+    Optional<Stream<Loc4>> getConnections(Loc4 loc);
 
     boolean canConnectNodes(@NotNull @Nonnull C a, @NotNull @Nonnull C b);
     boolean canConnectLocs(@NotNull @Nonnull Loc4 a, @NotNull @Nonnull Loc4 b);

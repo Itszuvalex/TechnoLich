@@ -1,14 +1,16 @@
 package com.itszuvalex.technolich.api.utility;
 
+import com.itszuvalex.technolich.api.adapters.IBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Optional;
+
 public class Loc4Indirect extends Loc4 {
-    private ResourceLocation worldId;
+    private final ResourceLocation worldId;
 
     public Loc4Indirect(ResourceLocation worldId, BlockPos pos) {
         this.worldId = worldId;
@@ -33,8 +35,13 @@ public class Loc4Indirect extends Loc4 {
     }
 
     @Override
-    public CompoundTag serializeNBT() {
-        return null;
+    public @NotNull Optional<IBlockEntity> getIBlockEntity(boolean force) {
+        return Optional.empty();
+    }
+
+    @Override
+    public @NotNull Optional<BlockEntity> getBlockEntity(boolean force) {
+        return Optional.empty();
     }
 
     @Override
