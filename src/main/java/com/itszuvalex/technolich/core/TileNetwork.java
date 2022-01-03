@@ -236,13 +236,11 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
 
     @Override
     public void register() {
-        // TODO: Make this sided
         TechnoLich.NETWORK_MANAGER.get(getSide()).ifPresent((a) -> a.addNetwork(this));
     }
 
     @Override
     public void unregister() {
-        // TODO: Make this sided
         TechnoLich.NETWORK_MANAGER.get(getSide()).ifPresent((a) -> a.removeNetwork(this));
     }
 

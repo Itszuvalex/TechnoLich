@@ -29,7 +29,7 @@ public class Loc4ILevel extends Loc4 {
 
     @Override
     public @NotNull ResourceLocation dimensionId() {
-        return level().dimension().location();
+        return level.dimensionLocation();
     }
 
     @NotNull
