@@ -30,4 +30,14 @@ public class TestableNetwork extends TileNetwork<TestableNetworkNode, TestableNe
     public IModule<TestableNetworkNode> networkModule() {
         return module;
     }
+
+    @Override
+    public void register() {
+        manager.addNetwork(this);
+    }
+
+    @Override
+    public void unregister() {
+        manager.removeNetwork(this);
+    }
 }

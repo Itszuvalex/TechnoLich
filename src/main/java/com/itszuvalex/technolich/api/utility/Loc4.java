@@ -1,6 +1,7 @@
 package com.itszuvalex.technolich.api.utility;
 
 import com.itszuvalex.technolich.api.adapters.IBlockEntity;
+import com.itszuvalex.technolich.api.adapters.ILevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -66,6 +67,12 @@ public abstract class Loc4 implements Comparable<Loc4>, INBTSerializable<Compoun
         return new Loc4Level(level, pos);
     }
 
+    public @NotNull
+    @Nonnull
+    Loc4 anchor(@NotNull @Nonnull ILevel level) {
+        return new Loc4ILevel(level, pos);
+    }
+
     public abstract @NotNull
     @Nonnull
     Optional<IBlockEntity> getIBlockEntity(boolean force);
@@ -122,6 +129,10 @@ public abstract class Loc4 implements Comparable<Loc4>, INBTSerializable<Compoun
 
     public static Loc4 of(@NotNull @Nonnull Level level, @NotNull @Nonnull BlockPos loc) {
         return new Loc4Level(level, loc);
+    }
+
+    public static Loc4 of(@NotNull @Nonnull ILevel level, @NotNull @Nonnull BlockPos loc) {
+        return new Loc4ILevel(level, loc);
     }
 
     public static @NotNull Loc4 of(@NotNull @Nonnull CompoundTag nbt) {

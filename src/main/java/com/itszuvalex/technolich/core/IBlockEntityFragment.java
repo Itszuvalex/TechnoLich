@@ -10,7 +10,7 @@ import javax.annotation.Nonnull;
 import java.util.Optional;
 import java.util.function.Function;
 
-public interface ITileEntityFragment<T> extends IScopedNBTSerialization<CompoundTag> {
+public interface IBlockEntityFragment<T> extends IScopedNBTSerialization<CompoundTag> {
     @NotNull
     @Nonnull
     String name();

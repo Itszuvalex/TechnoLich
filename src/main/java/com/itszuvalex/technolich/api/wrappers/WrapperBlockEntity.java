@@ -28,6 +28,11 @@ public class WrapperBlockEntity implements IBlockEntity {
     BlockPos getBlockPos() {return entity.getBlockPos();}
 
     @Override
+    public @NotNull BlockEntity toMinecraft() {
+        return entity;
+    }
+
+    @Override
     public @NotNull <T> LazyOptional<T> getModule(@NotNull IModule<T> module, @Nullable Direction side) {
         return capabilityProvider.getModule(module, side);
     }

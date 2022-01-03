@@ -1,4 +1,4 @@
-package com.itszuvalex.technolich.api.wrappers;
+package com.itszuvalex.technolich;
 
 import com.itszuvalex.technolich.api.adapters.IBlockEntity;
 import com.itszuvalex.technolich.api.adapters.ILevel;
@@ -10,54 +10,58 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
+import java.util.HashMap;
 
-public class WrapperLevel implements ILevel {
-    private @Nonnull
-    final Level level;
+public class TestableLevel implements ILevel {
+    private final @NotNull
+    @Nonnull
+    HashMap<BlockPos, IBlockEntity> blockEntityMap = new HashMap<>();
 
-    public WrapperLevel(@NotNull @Nonnull Level level) {
-        this.level = level;
+    private final @Nonnull @NotNull ResourceLocation dimension;
+
+    public TestableLevel(ResourceLocation dim) {
+        this.dimension = dim;
     }
 
     @Override
     public boolean isClientSide() {
-        return level.isClientSide();
+        return false;
     }
 
     @Override
     public ResourceKey<Level> dimension() {
-        return level.dimension();
+        MCAssert.failVanillaClass("dimension");
+        return null;
     }
 
     @Override
     public ResourceLocation dimensionLocation() {
-        return dimension().location();
+        return dimension;
     }
 
     @Override
     public @NotNull Level toMinecraft() {
-        return level;
+        MCAssert.failVanillaClass("toMinecraft");
+        return null;
     }
 
     @Override
     public boolean isLoaded(BlockPos pos) {
-        return level.isLoaded(pos);
+        return true;
     }
 
     @Override
     public IBlockEntity getIBlockEntity(BlockPos pos) {
-        var blockEntity = level.getBlockEntity(pos);
-        if (blockEntity == null) return null;
-        return new WrapperBlockEntity(blockEntity);
+        return blockEntityMap.get(pos);
     }
 
     @Override
     public void setIBlockEntity(IBlockEntity entity) {
-        level.setBlockEntity(entity.toMinecraft());
+        blockEntityMap.put(entity.getBlockPos(), entity);
     }
 
     @Override
     public void setBlockEntity(BlockEntity entity) {
-        level.setBlockEntity(entity);
+        MCAssert.failVanillaClass("setBlockEntity");
     }
 }
