@@ -1,9 +1,12 @@
 package com.itszuvalex.technolich.core;
 
 import com.itszuvalex.technolich.api.utility.Loc4;
+import net.minecraftforge.common.util.LogicalSidedProvider;
+import net.minecraftforge.fml.LogicalSide;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -37,6 +40,15 @@ public interface INetwork<C extends INetworkNode<C, N>, N extends INetwork<C, N>
      * @return Network Identifier.  This should be unique.
      */
     int ID();
+
+    /**
+     *
+     * @return LogicalSide hosting this network. Should mostly be {@link LogicalSide@Server}.
+     */
+    LogicalSide getSide();
+
+    @Nonnull @NotNull
+    default N castThis() { return (N) this; }
 
     /**
      *
@@ -107,7 +119,7 @@ public interface INetwork<C extends INetworkNode<C, N>, N extends INetwork<C, N>
      *
      * @param edges All nodes that were connected to all nodes that were removed.
      */
-    void split(@NotNull @Nonnull Stream<Loc4> edges);
+    void split(@NotNull @Nonnull Collection<Loc4> edges);
 
     /**
      * Called on sub networks by a main network, when that network is splitting apart.

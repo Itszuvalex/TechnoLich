@@ -9,13 +9,13 @@ import javax.annotation.Nonnull;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-public class SidedSupplier<T> implements ILevelBasedSupplier<T> {
+public class SingleSidedSupplier<T> implements ILevelBasedSupplier<T> {
     private final @NotNull
     @Nonnull
     Supplier<T> supplier;
     private final LogicalSide side;
 
-    public SidedSupplier(
+    public SingleSidedSupplier(
             @NotNull
             @Nonnull
                     Supplier<T> supplier, LogicalSide side) {
@@ -25,15 +25,15 @@ public class SidedSupplier<T> implements ILevelBasedSupplier<T> {
 
     @Override
     public Optional<T> get(ILevel level) {
-        return getSided(level.isClientSide());
+        return getSided(SidedHelper.sideFromIsClient(level.isClientSide()));
     }
 
     @Override
     public Optional<T> get(Level level) {
-        return getSided(level.isClientSide());
+        return getSided(SidedHelper.sideFromIsClient(level.isClientSide()));
     }
 
-    private Optional<T> getSided(boolean clientSide) {
-        return (clientSide && (this.side == LogicalSide.CLIENT)) ? Optional.of(supplier.get()) : Optional.empty();
+    private Optional<T> getSided(LogicalSide side) {
+        return (this.side == side) ? Optional.of(supplier.get()) : Optional.empty();
     }
 }

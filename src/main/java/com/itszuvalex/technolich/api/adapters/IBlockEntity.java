@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 
-public interface IBlockEntity {
+public interface IBlockEntity extends IModuleProvider {
     @NotNull
     @Nonnull
     BlockPos getBlockPos();

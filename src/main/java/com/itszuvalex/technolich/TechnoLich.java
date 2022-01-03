@@ -1,6 +1,6 @@
 package com.itszuvalex.technolich;
 
-import com.itszuvalex.technolich.api.utility.LazySidedHolder;
+import com.itszuvalex.technolich.api.utility.LazySingleSidedHolder;
 import com.itszuvalex.technolich.core.NetworkManager;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -28,7 +28,7 @@ public class TechnoLich {
     public static final String NAMELOWER = "technolich";
     private static final Logger LOGGER = LogManager.getLogger();
 
-    public static final LazySidedHolder<NetworkManager> NETWORK_MANAGER = new LazySidedHolder<>(NetworkManager::new, LogicalSide.SERVER);
+    public static final LazySingleSidedHolder<NetworkManager> NETWORK_MANAGER = new LazySingleSidedHolder<>(NetworkManager::new, LogicalSide.SERVER);
 
     public TechnoLich() {
         // Register the setup method for modloading
