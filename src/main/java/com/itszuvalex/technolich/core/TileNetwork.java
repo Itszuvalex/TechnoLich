@@ -1,6 +1,5 @@
 package com.itszuvalex.technolich.core;
 
-import com.google.common.graph.Network;
 import com.itszuvalex.technolich.TechnoLich;
 import com.itszuvalex.technolich.api.adapters.IModule;
 import com.itszuvalex.technolich.api.utility.FunctionalHelpers;
@@ -42,6 +41,14 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
 
     @Override
     public LogicalSide getSide() {return side;}
+
+    @Override
+    public @NotNull N createWithNodesAndEdges(@NotNull Stream<C> nodes, @NotNull Stream<NetworkEdge> edges) {
+        N net = create();
+        nodes.forEach((n) -> ((TileNetwork<C, N>) net).addNodeSilently(n));
+        edges.forEach((e) -> ((TileNetwork<C, N>) net).addConnectionSilently(e.a(), e.b()));
+        return net;
+    }
 
     @Override
     public @NotNull Stream<C> getNodes() {
@@ -175,7 +182,7 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
     public void split(@NotNull Collection<Loc4> edges) {
         HashSet<Loc4> workingSet = new HashSet<>(edges);
         ArrayList<Collection<Loc4>> networks = new ArrayList<>();
-        while(!workingSet.isEmpty()) {
+        while (!workingSet.isEmpty()) {
             var first = workingSet.stream().findFirst().get();
             var nodes = NetworkExplorer.explore(first, this);
             networks.add(nodes);
@@ -186,7 +193,7 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
         if (networks.size() <= 1) return;
 
         HashSet<NetworkEdge> edgeTuples = new HashSet<>(getEdges().toList());
-        networks.forEach((networkNodes) ->{
+        networks.forEach((networkNodes) -> {
             var nodes = networkNodes.stream().map(nodeMap::get);
             var edgesSet = edgeTuples.stream().filter((e) -> networkNodes.contains(e.a()));
             var network = createWithNodesAndEdges(nodes, edgesSet);
