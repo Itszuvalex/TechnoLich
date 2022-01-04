@@ -175,7 +175,7 @@ class LocationTrackerTest {
         var end = start + timeout.toMillis();
         while (!trackedLocs.isDone() && System.currentTimeMillis() < end) {
             try {
-                Thread.sleep(50);
+                Thread.sleep(5);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -217,7 +217,7 @@ class LocationTrackerTest {
         var end = start + timeout.toMillis();
         while (!trackedLocs.isDone() && System.currentTimeMillis() < end) {
             try {
-                Thread.sleep(50);
+                Thread.sleep(5);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

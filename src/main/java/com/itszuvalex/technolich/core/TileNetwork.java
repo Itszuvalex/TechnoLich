@@ -172,6 +172,7 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
         split(edges);
 
         // Clear ourself if empty
+        // TODO: This is duplicated if we did in fact split at all.
         if (size() == 0) {
             clear();
             unregister();

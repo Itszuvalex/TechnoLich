@@ -35,6 +35,13 @@ public class LocationTracker {
         if (!dimMap.containsKey(coords)) return;
         var locSet = dimMap.get(coords);
         locSet.remove(loc);
+
+        if(locSet.size() < 1) {
+            dimMap.remove(coords);
+            if(dimMap.size() < 1) {
+                trackerMap.remove(locloc);
+            }
+        }
     }
 
     public boolean isLocationTracked(@Nonnull @NotNull Loc4 loc) {
