@@ -18,7 +18,7 @@ public abstract class TileNetworkNode<C extends TileNetworkNode<C, N>, N extends
     public @NotNull N getNetwork() {return network;}
 
     @Override
-    public boolean canConnect(@NotNull Loc4 loc) {return true;}
+    public boolean canConnect(@NotNull Loc4 loc) {return getLoc().isNeighbor(loc);}
 
     @Override
     public boolean canAdd(@NotNull N network) {return true;}

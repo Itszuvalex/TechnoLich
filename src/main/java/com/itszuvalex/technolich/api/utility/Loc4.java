@@ -163,5 +163,12 @@ public abstract class Loc4 implements Comparable<Loc4>, INBTSerializable<Compoun
     public int hashCode() {
         return Objects.hash(dimensionId(), pos);
     }
+
+    public boolean isNeighbor(Loc4 loc) {
+        if(!dimensionId().equals(loc.dimensionId())) return false;
+        if(Math.abs(x() - loc.x()) == 1 && y() == loc.y() && z() == loc.z()) return true;
+        if(x() == loc.x() && Math.abs(y() - loc.y()) == 1 && z() == loc.z()) return true;
+        return x() == loc.x() && y() == loc.y() && Math.abs(z() - loc.z()) == 1;
+    }
 }
 

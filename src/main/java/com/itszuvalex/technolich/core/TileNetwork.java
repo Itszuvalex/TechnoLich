@@ -139,12 +139,8 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
         if (!canAddNode(node)) return;
         if (!node.canAdd(castThis())) return;
         addNodeSilently(node);
-        node.setNetwork(castThis());
         node.onAdded(castThis());
-        var nodeLoc = node.getLoc();
-        Predicate<C> aConnect = (c) -> c.canConnect(nodeLoc);
-        Predicate<C> nodeConnect = (c) -> node.canConnect(c.getLoc());
-        getNodes().filter(aConnect.and(nodeConnect)).forEach((a) -> addConnectionNodes(a, node));
+        getNodes().filter((c) -> canConnectNodes(node, c)).forEach((a) -> addConnectionNodes(a, node));
     }
 
     @Override
@@ -155,7 +151,10 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
     @Override
     public void removeNodes(@NotNull Stream<C> nodes) {
         List<Loc4> nodeLocs = nodes.map(C::getLoc).toList();
+        // Loc4s of all nodes being removed
         HashSet<Loc4> nodeLocSet = new HashSet<>(nodeLocs);
+        // Find edges - set of Loc4s of all nodes connected to a node in nodeLocSet, but not any Loc4
+        // in nodeLocSet
         HashSet<Loc4> edges =
                 new HashSet<>(nodeLocs.stream().map(this::getConnections).filter(Optional::isPresent).flatMap(Optional::get).toList());
         edges.removeAll(nodeLocSet);
@@ -310,6 +309,7 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
 
     private void addNodeSilently(@NotNull @Nonnull C node) {
         nodeMap.put(node.getLoc(), node);
+        node.setNetwork(castThis());
     }
 
     public static class NetworkExplorer {
