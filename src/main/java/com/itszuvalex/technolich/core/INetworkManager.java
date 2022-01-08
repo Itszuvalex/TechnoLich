@@ -1,5 +1,7 @@
 package com.itszuvalex.technolich.core;
 
+import com.itszuvalex.technolich.api.adapters.ILevel;
+import com.itszuvalex.technolich.api.utility.ChunkCoord;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -26,4 +28,6 @@ public interface INetworkManager {
     void onTickEnd();
 
     void onTickStart();
+
+    void onChunkUnload(ILevel level, ChunkCoord chunk);
 }

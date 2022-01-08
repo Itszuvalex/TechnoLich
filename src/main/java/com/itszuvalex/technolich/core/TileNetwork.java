@@ -1,15 +1,17 @@
 package com.itszuvalex.technolich.core;
 
 import com.itszuvalex.technolich.TechnoLich;
+import com.itszuvalex.technolich.api.adapters.ILevel;
 import com.itszuvalex.technolich.api.adapters.IModule;
+import com.itszuvalex.technolich.api.utility.ChunkCoord;
 import com.itszuvalex.technolich.api.utility.FunctionalHelpers;
 import com.itszuvalex.technolich.api.utility.Loc4;
+import com.itszuvalex.technolich.api.utility.LocationTracker;
 import net.minecraftforge.fml.LogicalSide;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import java.util.*;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNetwork<C, N>> implements INetwork<C, N> {
@@ -21,6 +23,9 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
     @Nonnull
     final
     HashMap<Loc4, Set<Loc4>> connectionMap;
+    private @NotNull
+    @Nonnull
+    final LocationTracker locationTracker;
 
     private final int ID;
     private final LogicalSide side;
@@ -30,6 +35,7 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
         this.side = side;
         nodeMap = new HashMap<>();
         connectionMap = new HashMap<>();
+        locationTracker = new LocationTracker();
     }
 
     public abstract IModule<C> networkModule();
@@ -151,6 +157,9 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
     @Override
     public void removeNodes(@NotNull Stream<C> nodes) {
         List<Loc4> nodeLocs = nodes.map(C::getLoc).toList();
+
+        if(nodeLocs.size() == 0) return; // Skip all this if we're not removing anything.
+
         // Loc4s of all nodes being removed
         HashSet<Loc4> nodeLocSet = new HashSet<>(nodeLocs);
         // Find edges - set of Loc4s of all nodes connected to a node in nodeLocSet, but not any Loc4
@@ -166,6 +175,7 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
                     .ifPresent((b) -> b
                             .forEach((c) -> removeConnectionBatch(a, c)));
             nodeMap.remove(a);
+            locationTracker.removeLocation(a);
         });
 
         split(edges);
@@ -259,6 +269,13 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
         // Do nothing
     }
 
+    @Override
+    public void onChunkUnload(ILevel level, ChunkCoord chunk) {
+        removeNodes(
+                locationTracker.getTrackedLocationsInChunk(level.dimensionLocation(), chunk).map(nodeMap::get)
+        );
+    }
+
     private @NotNull
     @Nonnull
     Optional<C> getModForLoc(@NotNull @Nonnull Loc4 loc) {
@@ -310,6 +327,7 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
     private void addNodeSilently(@NotNull @Nonnull C node) {
         nodeMap.put(node.getLoc(), node);
         node.setNetwork(castThis());
+        locationTracker.trackLocation(node.getLoc());
     }
 
     public static class NetworkExplorer {
