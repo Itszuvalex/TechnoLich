@@ -1,5 +1,6 @@
 package com.itszuvalex.technolich.api.adapters;
 
+import com.itszuvalex.technolich.api.wrappers.WrapperLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -10,6 +11,10 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nonnull;
 
 public interface ILevel {
+    static @NotNull ILevel of(@NotNull Level level) {
+        return WrapperLevel.of(level);
+    }
+
     boolean isClientSide();
 
     ResourceKey<Level> dimension();

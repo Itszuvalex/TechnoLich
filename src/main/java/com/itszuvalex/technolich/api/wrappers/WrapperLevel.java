@@ -12,6 +12,12 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nonnull;
 
 public class WrapperLevel implements ILevel {
+    private static WrapperCache<Level, WrapperLevel> cache = new WrapperCache<>(16, WrapperLevel::new);
+
+    public static @NotNull WrapperLevel of(@NotNull Level level) {
+        return cache.get(level);
+    }
+
     private @Nonnull
     final Level level;
 

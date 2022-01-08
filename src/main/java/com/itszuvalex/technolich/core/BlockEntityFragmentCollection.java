@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.logging.Level;
 
 public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, ScopedCompoundTagSerialization, IModuleCapabilityMap {
     private final @NotNull
@@ -22,11 +23,15 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
     ArrayList<IInternalBlockEntityFragment> modList;
     private final @NotNull
     @Nonnull
+    ArrayList<IBlockEntityTickable> tickList;
+    private final @NotNull
+    @Nonnull
     IBlockEntity blockEntity;
 
     public BlockEntityFragmentCollection(@NotNull @Nonnull IBlockEntity blockEntity) {
         modCapMap = new ModuleCapabilityArrayListMap();
         modList = new ArrayList<>();
+        tickList = new ArrayList<>();
         this.blockEntity = blockEntity;
     }
 
@@ -38,6 +43,10 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
         addInternalFragment(fragment);
         var getter = fragment.faceToModuleMapper(blockEntity);
         modCapMap.addModule(fragment.module(), getter::apply);
+    }
+
+    public void addTickable(@NotNull @Nonnull IBlockEntityTickable tickable) {
+        tickList.add(tickable);
     }
 
     @Override

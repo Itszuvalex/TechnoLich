@@ -1,5 +1,6 @@
 package com.itszuvalex.technolich.core;
 
+import com.itszuvalex.technolich.api.adapters.ILevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.EntityBlock;
@@ -21,10 +22,10 @@ public abstract class TickableEntityBlockCore<T extends TickableBlockEntityCore>
     @Nullable
     @Override
     public <E extends BlockEntity> BlockEntityTicker<E> getTicker(@NotNull Level p_153212_, @NotNull BlockState p_153213_, @NotNull BlockEntityType<E> p_153214_) {
-        return p_153214_ == typeSupplier.get() ? this::tickInstance : null;
+        return p_153214_ == typeSupplier.get() ? TickableEntityBlockCore::tickInstance : null;
     }
 
-    private <E extends BlockEntity> void tickInstance(@NotNull Level level, @NotNull BlockPos blockPos, @NotNull BlockState blockState, @NotNull E t) {
-        ((T)t).tick(level, blockPos, blockState);
+    private static <E extends BlockEntity> void tickInstance(@NotNull Level level, @NotNull BlockPos blockPos, @NotNull BlockState blockState, @NotNull E t) {
+        ((TickableBlockEntityCore) t).tick(ILevel.of(level), blockPos, blockState);
     }
 }
