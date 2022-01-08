@@ -2,11 +2,15 @@ package com.itszuvalex.technolich.core;
 
 import com.itszuvalex.technolich.api.adapters.IBlockEntity;
 import com.itszuvalex.technolich.api.adapters.IModule;
-import com.itszuvalex.technolich.api.utility.IScopedNBTSerialization;
 import com.itszuvalex.technolich.api.utility.NBTSerializationScope;
+import com.itszuvalex.technolich.api.utility.ScopedCompoundTagSerialization;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.Packet;
+import net.minecraft.network.protocol.game.ClientGamePacketListener;
+import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -17,7 +21,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 
-public class BlockEntityCore extends BlockEntity implements IBlockEntity, IScopedNBTSerialization<CompoundTag> {
+public class BlockEntityCore extends BlockEntity implements IBlockEntity, ScopedCompoundTagSerialization {
     public static final String FRAG_KEY = "frags";
 
     private final @NotNull
@@ -48,9 +52,9 @@ public class BlockEntityCore extends BlockEntity implements IBlockEntity, IScope
     }
 
     @Override
-    public @NotNull CompoundTag save(CompoundTag tag) {
-        var ret= super.save(tag);
-        // TODO: Figure this out
+    public @NotNull CompoundTag save(@NotNull CompoundTag tag) {
+        var ret = super.save(tag);
+        serializeTo(NBTSerializationScope.LEVEL, ret);
         return ret;
     }
 
@@ -60,22 +64,47 @@ public class BlockEntityCore extends BlockEntity implements IBlockEntity, IScope
         deserialize(tag, NBTSerializationScope.LEVEL);
     }
 
-    @NotNull
     @Override
-    public CompoundTag serialize(NBTSerializationScope scope) {
-        CompoundTag tag = new CompoundTag();
+    public void serializeTo(NBTSerializationScope scope, @NotNull CompoundTag tag) {
         tag.put(FRAG_KEY, fragList.serialize(scope));
-        return tag;
     }
 
     @Override
     public void deserialize(@NotNull CompoundTag nbt, NBTSerializationScope scope) {
-        if(nbt.contains(FRAG_KEY))
+        if (nbt.contains(FRAG_KEY))
             fragList.deserialize(nbt.getCompound(FRAG_KEY), scope);
     }
 
     @Override
     public boolean handlesScope(NBTSerializationScope scope) {
         return fragList.handlesScope(scope);
+    }
+
+    @Nullable
+    @Override
+    public Packet<ClientGamePacketListener> getUpdatePacket() {
+        if (!handlesScope(NBTSerializationScope.DESCRIPTION)) return null;
+
+        //Write your data into the tag
+        return ClientboundBlockEntityDataPacket.create(this);
+    }
+
+    @Override
+    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
+        if (!handlesScope(NBTSerializationScope.DESCRIPTION)) return;
+        CompoundTag tag = pkt.getTag();
+        if (tag == null) return;
+
+        deserialize(tag, NBTSerializationScope.DESCRIPTION);
+    }
+
+    @Override
+    public void handleUpdateTag(CompoundTag tag) {
+        deserialize(tag, NBTSerializationScope.DESCRIPTION);
+    }
+
+    @Override
+    public @NotNull CompoundTag getUpdateTag() {
+        return serialize(NBTSerializationScope.DESCRIPTION);
     }
 }

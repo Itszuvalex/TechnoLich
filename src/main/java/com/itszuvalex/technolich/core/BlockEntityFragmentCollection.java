@@ -13,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 
-public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, IScopedNBTSerialization<CompoundTag>, IModuleCapabilityMap {
+public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, ScopedCompoundTagSerialization, IModuleCapabilityMap {
     private final @NotNull
     @Nonnull
     IMutableModuleCapabilityMap modCapMap;
@@ -41,12 +41,10 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
     }
 
     @Override
-    public @NotNull CompoundTag serialize(NBTSerializationScope scope) {
-        var tag = new CompoundTag();
+    public void serializeTo(NBTSerializationScope scope, @NotNull CompoundTag tag) {
         modList.stream()
                 .filter((i) -> i.handlesScope(scope))
                 .forEach((i) -> tag.put(i.name(), i.serialize(scope)));
-        return tag;
     }
 
     @Override
@@ -58,7 +56,7 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
 
     @Override
     public boolean handlesScope(NBTSerializationScope scope) {
-        return true;
+        return modList.stream().anyMatch((i) -> i.handlesScope(scope));
     }
 
     @Override

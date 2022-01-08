@@ -9,6 +9,8 @@ public interface IScopedNBTSerialization<T> {
     @Nonnull
     T serialize(NBTSerializationScope scope);
 
+    void serializeTo(NBTSerializationScope scope, @NotNull @Nonnull T tag);
+
     void deserialize(@NotNull @Nonnull T nbt, NBTSerializationScope scope);
 
     boolean handlesScope(NBTSerializationScope scope);
