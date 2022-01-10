@@ -24,7 +24,7 @@ import javax.annotation.Nonnull;
 public class BlockEntityCore extends BlockEntity implements IBlockEntity, ScopedCompoundTagSerialization {
     public static final String FRAG_KEY = "frags";
 
-    private final @NotNull
+    protected final @NotNull
     @Nonnull
     BlockEntityFragmentCollection fragList;
 

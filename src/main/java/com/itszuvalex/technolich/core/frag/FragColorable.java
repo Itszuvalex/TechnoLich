@@ -18,10 +18,12 @@ import java.util.function.Supplier;
 public class FragColorable implements IBlockEntityFragment<Color> {
     public static String COLOR_TAG = "color";
 
-    private LazyOptional<Color> color;
+    private Color color;
+    private LazyOptional<Color> colorOpt;
 
     public FragColorable(Color color) {
-        this.color = LazyOptional.of(() -> color);
+        this.color = color;
+        this.colorOpt = LazyOptional.of(() -> color);
     }
 
     public FragColorable() {
@@ -30,15 +32,15 @@ public class FragColorable implements IBlockEntityFragment<Color> {
 
     @Override
     public void serializeTo(NBTSerializationScope scope, @NotNull CompoundTag tag) {
-        tag.putInt(COLOR_TAG, color.resolve().get().toInt());
+        tag.putInt(COLOR_TAG, color.toInt());
     }
 
     @Override
     public void deserialize(@NotNull CompoundTag nbt, NBTSerializationScope scope) {
-        var lastcolor = color;
+        var lastcolor = colorOpt;
         var ci = nbt.getInt(COLOR_TAG);
-        var newcolor = new Color(ci);
-        color = LazyOptional.of(() -> newcolor);
+        color = new Color(ci);
+        colorOpt = LazyOptional.of(() -> color);
         lastcolor.invalidate();
     }
 
@@ -55,10 +57,12 @@ public class FragColorable implements IBlockEntityFragment<Color> {
     @Override
     public @Nonnull
     @NotNull Function<Direction, Supplier<LazyOptional<Color>>> faceToModuleSupplierMapper(@NotNull IBlockEntity be) {
-        return (d) -> this::getColor;
+        return (d) -> this::getColorOpt;
     }
 
-    private LazyOptional<Color> getColor() { return color; }
+    private LazyOptional<Color> getColorOpt() {
+        return colorOpt;
+    }
 
     @Override
     public @NotNull String name() {
@@ -67,6 +71,11 @@ public class FragColorable implements IBlockEntityFragment<Color> {
 
     @Override
     public void invalidateFrags() {
-        color.invalidate();
+        colorOpt.invalidate();
+    }
+
+    @Override
+    public void rehydrateFrags() {
+        colorOpt = LazyOptional.of(() -> color);
     }
 }

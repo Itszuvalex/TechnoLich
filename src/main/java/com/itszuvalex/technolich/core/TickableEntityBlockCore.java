@@ -24,16 +24,18 @@ public abstract class TickableEntityBlockCore<T extends TickableBlockEntityCore>
     @Nullable
     @Override
     public <E extends BlockEntity> BlockEntityTicker<E> getTicker(@NotNull Level p_153212_, @NotNull BlockState p_153213_, @NotNull BlockEntityType<E> p_153214_) {
-        if(p_153214_ != typeSupplier.get())
+        if (p_153214_ != typeSupplier.get())
             return null;
-        if(!hasTicker(SidedHelper.sideFromIsClient(p_153212_.isClientSide())))
+        if (!hasTicker(SidedHelper.sideFromIsClient(p_153212_.isClientSide())))
             return null;
         return TickableEntityBlockCore::tickInstance;
     }
 
-    public boolean hasTicker(LogicalSide side) { return false; }
+    public boolean hasTicker(LogicalSide side) {
+        return false;
+    }
 
     private static <E extends BlockEntity> void tickInstance(@NotNull Level level, @NotNull BlockPos blockPos, @NotNull BlockState blockState, @NotNull E t) {
-        ((TickableBlockEntityCore) t).tick(ILevel.of(level), blockPos, blockState);
+        ((IBlockEntityTickable) t).tick(ILevel.of(level), blockPos, blockState);
     }
 }

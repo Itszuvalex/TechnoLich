@@ -1,10 +1,13 @@
 package com.itszuvalex.technolich.core;
 
 import com.itszuvalex.technolich.api.adapters.IBlockEntity;
+import com.itszuvalex.technolich.api.adapters.ILevel;
 import com.itszuvalex.technolich.api.adapters.IModule;
 import com.itszuvalex.technolich.api.utility.*;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.util.LazyOptional;
 import org.jetbrains.annotations.NotNull;
@@ -12,10 +15,8 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
-public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, ScopedCompoundTagSerialization, IModuleCapabilityMap {
+public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, ScopedCompoundTagSerialization, IModuleCapabilityMap, IBlockEntityTickable {
     private final @NotNull
     @Nonnull
     IMutableModuleCapabilityMap modCapMap;
@@ -51,6 +52,11 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
     }
 
     @Override
+    public void tick(@NotNull ILevel level, @NotNull BlockPos pos, @NotNull BlockState state) {
+        tickList.forEach((t) -> t.tick(level, pos, state));
+    }
+
+    @Override
     public void serializeTo(NBTSerializationScope scope, @NotNull CompoundTag tag) {
         modList.stream()
                 .filter((i) -> i.handlesScope(scope))
@@ -82,6 +88,13 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
 
     @Override
     public void invalidateFrags() {
+        modCapMap.invalidateFrags();
         modList.forEach(IBlockEntityEventHandler::invalidateFrags);
+    }
+
+    @Override
+    public void rehydrateFrags() {
+        modList.forEach(IBlockEntityEventHandler::rehydrateFrags);
+        modCapMap.rehydrateFrags();
     }
 }

@@ -13,6 +13,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class ModuleCapabilityHashMap implements IMutableModuleCapabilityMap {
+    private boolean valid = true;
     private final @Nonnull
     @NotNull HashMap<IModule<?>, Object> modMap = new HashMap<>();
     private final @Nonnull
@@ -33,6 +34,8 @@ public class ModuleCapabilityHashMap implements IMutableModuleCapabilityMap {
 
     @Override
     public @NotNull <T> LazyOptional<T> getModule(@NotNull IModule<T> module, @Nullable Direction side) {
+        if(!valid) return LazyOptional.empty();
+
         var funcObj = modMap.get(module);
         if (funcObj == null) return LazyOptional.empty();
         var func = (Function<Direction, Supplier<LazyOptional<T>>>) funcObj;
@@ -42,9 +45,22 @@ public class ModuleCapabilityHashMap implements IMutableModuleCapabilityMap {
     @NotNull
     @Override
     public <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
+        if(!valid) return LazyOptional.empty();
+
         var funcObj = capMap.get(cap);
         if (funcObj == null) return LazyOptional.empty();
         var func = (Function<Direction, Supplier<LazyOptional<T>>>) funcObj;
         return func.apply(side).get().cast();
     }
+
+    @Override
+    public void invalidateFrags() {
+        valid = false;
+    }
+
+    @Override
+    public void rehydrateFrags() {
+        valid = true;
+    }
+
 }
