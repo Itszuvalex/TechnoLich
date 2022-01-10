@@ -8,11 +8,12 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public interface IMutableModuleCapabilityMap extends IModuleCapabilityMap {
-    void addModule(@NotNull @Nonnull IModule<?> module,
-                   @NotNull @Nonnull Function<Direction, LazyOptional<?>> provider);
+    <T> void addModule(@NotNull @Nonnull IModule<T> module,
+                   @NotNull @Nonnull Function<Direction, Supplier<LazyOptional<T>>> provider);
 
-    void addCapability(@NotNull @Nonnull Capability<?> cap, @NotNull @Nonnull Function<Direction,
-            LazyOptional<?>> provider);
+    <T> void addCapability(@NotNull @Nonnull Capability<T> cap, @NotNull @Nonnull Function<Direction,
+            Supplier<LazyOptional<T>>> provider);
 }

@@ -31,7 +31,7 @@ public abstract class ModuleCapabilityMapTestBase {
         Integer testVal = 1;
         var map = getMap();
         // Act
-        map.addModule(module, (facing) -> LazyOptional.of(() -> testVal));
+        map.addModule(module, (facing) -> () -> LazyOptional.of(() -> testVal));
         // Assert
         var lazyopt = map.getModule(module, null);
         Assertions.assertTrue(lazyopt.isPresent());
@@ -52,7 +52,7 @@ public abstract class ModuleCapabilityMapTestBase {
         Integer testVal = 1;
         var map = getMap();
         // Act
-        map.addModule(module, (facing) -> facing == null ? LazyOptional.empty() : LazyOptional.of(() -> testVal));
+        map.addModule(module, (facing) -> () -> facing == null ? LazyOptional.empty() : LazyOptional.of(() -> testVal));
         // Assert
         var lazyopt = map.getModule(module, null);
         Assertions.assertFalse(lazyopt.isPresent());

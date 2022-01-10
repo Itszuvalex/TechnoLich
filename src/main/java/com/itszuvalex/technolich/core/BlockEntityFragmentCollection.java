@@ -12,7 +12,8 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
-import java.util.logging.Level;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, ScopedCompoundTagSerialization, IModuleCapabilityMap {
     private final @NotNull
@@ -39,10 +40,10 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
         modList.add(fragment);
     }
 
-    public void addFragment(@NotNull @Nonnull IBlockEntityFragment<?> fragment) {
+    public <F> void addFragment(@NotNull @Nonnull IBlockEntityFragment<F> fragment) {
         addInternalFragment(fragment);
-        var getter = fragment.faceToModuleMapper(blockEntity);
-        modCapMap.addModule(fragment.module(), getter::apply);
+        var getter = fragment.faceToModuleSupplierMapper(blockEntity);
+        modCapMap.addModule(fragment.module(), getter);
     }
 
     public void addTickable(@NotNull @Nonnull IBlockEntityTickable tickable) {
@@ -77,5 +78,10 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
     @Override
     public <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
         return modCapMap.getCapability(cap, side);
+    }
+
+    @Override
+    public void invalidateFrags() {
+        modList.forEach(IBlockEntityEventHandler::invalidateFrags);
     }
 }

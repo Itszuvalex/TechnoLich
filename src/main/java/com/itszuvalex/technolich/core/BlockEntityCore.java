@@ -80,6 +80,12 @@ public class BlockEntityCore extends BlockEntity implements IBlockEntity, Scoped
         return fragList.handlesScope(scope);
     }
 
+    @Override
+    public void invalidateCaps() {
+        super.invalidateCaps();
+        fragList.invalidateFrags();
+    }
+
     @Nullable
     @Override
     public Packet<ClientGamePacketListener> getUpdatePacket() {

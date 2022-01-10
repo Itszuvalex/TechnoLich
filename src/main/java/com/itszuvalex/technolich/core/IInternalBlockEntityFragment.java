@@ -1,12 +1,11 @@
 package com.itszuvalex.technolich.core;
 
-import com.itszuvalex.technolich.api.utility.IScopedNBTSerialization;
-import net.minecraft.nbt.CompoundTag;
+import com.itszuvalex.technolich.api.utility.ScopedCompoundTagSerialization;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 
-public interface IInternalBlockEntityFragment extends IBlockEntityEventHandler, IScopedNBTSerialization<CompoundTag> {
+public interface IInternalBlockEntityFragment extends IBlockEntityEventHandler, ScopedCompoundTagSerialization {
     @NotNull
     @Nonnull
     String name();

@@ -57,7 +57,7 @@ class NetworkTest {
         public TestableNetworkNode createNode(BlockPos pos) {
             TestableNetworkNodeBlockEntity e = new TestableNetworkNodeBlockEntity(pos, level);
             TestableNetworkNode node = new TestableNetworkNode(Loc4.of(level, pos));
-            e.moduleCapabilityMap.addModule(module, (dir) -> LazyOptional.of(() -> node));
+            e.moduleCapabilityMap.addModule(module, (dir) -> () -> LazyOptional.of(() -> node));
             level.setIBlockEntity(e);
             return node;
         }

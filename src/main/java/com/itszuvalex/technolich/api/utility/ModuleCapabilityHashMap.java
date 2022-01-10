@@ -10,38 +10,41 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.Nonnull;
 import java.util.HashMap;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class ModuleCapabilityHashMap implements IMutableModuleCapabilityMap {
     private final @Nonnull
-    @NotNull HashMap<IModule<?>, Function<Direction, LazyOptional<?>>> modMap = new HashMap<>();
+    @NotNull HashMap<IModule<?>, Object> modMap = new HashMap<>();
     private final @Nonnull
-    @NotNull HashMap<Capability<?>, Function<Direction, LazyOptional<?>>> capMap = new HashMap<>();
+    @NotNull HashMap<Capability<?>, Object> capMap = new HashMap<>();
 
     @Override
-    public void addModule(@NotNull @Nonnull IModule<?> module,
-                          @NotNull @Nonnull Function<Direction, LazyOptional<?>> provider) {
+    public <T> void addModule(@NotNull @Nonnull IModule<T> module,
+                              @NotNull @Nonnull Function<Direction, Supplier<LazyOptional<T>>> provider) {
         modMap.put(module, provider);
         module.capability().ifPresent((c) -> capMap.put(c, provider));
     }
 
     @Override
-    public void addCapability(@NotNull @Nonnull Capability<?> cap, @NotNull @Nonnull Function<Direction,
-            LazyOptional<?>> provider) {
+    public <T> void addCapability(@NotNull @Nonnull Capability<T> cap, @NotNull @Nonnull Function<Direction,
+            Supplier<LazyOptional<T>>> provider) {
         capMap.put(cap, provider);
     }
 
     @Override
     public @NotNull <T> LazyOptional<T> getModule(@NotNull IModule<T> module, @Nullable Direction side) {
-        var func = modMap.get(module);
-        if (func == null) return LazyOptional.empty();
-        return func.apply(side).cast();
+        var funcObj = modMap.get(module);
+        if (funcObj == null) return LazyOptional.empty();
+        var func = (Function<Direction, Supplier<LazyOptional<T>>>) funcObj;
+        return func.apply(side).get().cast();
     }
 
     @NotNull
     @Override
     public <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
-        var func = capMap.get(cap);
-        if (func == null) return LazyOptional.empty();
-        return func.apply(side).cast();
+        var funcObj = capMap.get(cap);
+        if (funcObj == null) return LazyOptional.empty();
+        var func = (Function<Direction, Supplier<LazyOptional<T>>>) funcObj;
+        return func.apply(side).get().cast();
     }
 }

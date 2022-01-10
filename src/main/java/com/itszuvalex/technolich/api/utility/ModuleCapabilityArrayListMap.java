@@ -10,37 +10,38 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class ModuleCapabilityArrayListMap implements IMutableModuleCapabilityMap {
-    private record ModulePair(IModule<?> mod, Function<Direction, LazyOptional<?>> provider) {
+    private record ModulePair<T>(IModule<T> mod, Function<Direction, Supplier<LazyOptional<T>>> provider) {
     }
 
-    private record CapPair(Capability<?> cap, Function<Direction, LazyOptional<?>> provider) {
+    private record CapPair<T>(Capability<T> cap, Function<Direction, Supplier<LazyOptional<T>>> provider) {
     }
 
     private final @Nonnull
-    @NotNull ArrayList<ModulePair> modList = new ArrayList<>();
+    @NotNull ArrayList<ModulePair<?>> modList = new ArrayList<>();
     private final @Nonnull
-    @NotNull ArrayList<CapPair> capList = new ArrayList<>();
+    @NotNull ArrayList<CapPair<?>> capList = new ArrayList<>();
 
     @Override
-    public void addModule(@NotNull @Nonnull IModule<?> module,
-                          @NotNull @Nonnull Function<Direction, LazyOptional<?>> provider) {
-        modList.add(new ModulePair(module, provider));
-        module.capability().ifPresent((c) -> capList.add(new CapPair(c, provider)));
+    public <T> void addModule(@NotNull @Nonnull IModule<T> module,
+                          @NotNull @Nonnull Function<Direction, Supplier<LazyOptional<T>>> provider) {
+        modList.add(new ModulePair<>(module, provider));
+        module.capability().ifPresent((c) -> capList.add(new CapPair<>(c, provider)));
     }
 
     @Override
-    public void addCapability(@NotNull @Nonnull Capability<?> cap, @NotNull @Nonnull Function<Direction,
-            LazyOptional<?>> provider) {
-        capList.add(new CapPair(cap, provider));
+    public <T> void addCapability(@NotNull @Nonnull Capability<T> cap, @NotNull @Nonnull Function<Direction,
+            Supplier<LazyOptional<T>>> provider) {
+        capList.add(new CapPair<>(cap, provider));
     }
 
     @Override
     public @NotNull <T> LazyOptional<T> getModule(@NotNull IModule<T> module, @Nullable Direction side) {
         var matching = modList.stream().filter((p) -> p.mod == module).findFirst();
         if (matching.isEmpty()) return LazyOptional.empty();
-        return matching.get().provider.apply(side).cast();
+        return matching.get().provider.apply(side).get().cast();
     }
 
     @NotNull
@@ -48,6 +49,6 @@ public class ModuleCapabilityArrayListMap implements IMutableModuleCapabilityMap
     public <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
         var matching = capList.stream().filter((p) -> p.cap == cap).findFirst();
         if (matching.isEmpty()) return LazyOptional.empty();
-        return matching.get().provider.apply(side).cast();
+        return matching.get().provider.apply(side).get().cast();
     }
 }

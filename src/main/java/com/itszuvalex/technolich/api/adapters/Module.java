@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 public class Module<T> implements IModule<T> {
-    public static HashMap<String, IModule<?>> MODULES = new HashMap<String, IModule<?>>();
+    private static HashMap<String, IModule<?>> MODULES = new HashMap<String, IModule<?>>();
 
     @Contract("_, _ -> param2")
     public static @Nonnull
