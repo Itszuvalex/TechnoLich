@@ -22,8 +22,10 @@ public interface IItemStorage extends INBTSerializable<CompoundTag> {
         public int size() {
             return 0;
         }
+
         @Override
-        public void setSlot(int index, @NotNull IItemStack stack) { }
+        public void setSlot(int index, @NotNull IItemStack stack) {
+        }
     };
 
     @NotNull
@@ -34,7 +36,9 @@ public interface IItemStorage extends INBTSerializable<CompoundTag> {
 
     void setSlot(int index, @Nonnull @NotNull IItemStack stack);
 
-    default boolean canInsert(int index, @NotNull @Nonnull IItemStack stack) {return true;}
+    default boolean canInsert(int index, @NotNull @Nonnull IItemStack stack) {
+        return true;
+    }
 
     default int maxStackSize(int index) {
         return Math.min(MCConstants.ITEMSTACK_MAX, get(index).stackSizeMax());
@@ -164,5 +168,12 @@ public interface IItemStorage extends INBTSerializable<CompoundTag> {
 
     default IItemStack readItemFromSlot(@NotNull @Nonnull CompoundTag nbt, int slot) {
         return IItemStack.of(nbt.getCompound(String.valueOf(slot)));
+    }
+
+    default boolean isEmpty() {
+        return IntStream.range(0, size()).filter((i) -> !get(i).isEmpty()).findFirst().isEmpty();
+    }
+
+    default void setChanged() {
     }
 }

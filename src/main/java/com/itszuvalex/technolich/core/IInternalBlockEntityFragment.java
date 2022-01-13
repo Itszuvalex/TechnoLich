@@ -5,7 +5,7 @@ import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 
-public interface IInternalBlockEntityFragment extends IBlockEntityEventHandler, ScopedCompoundTagSerialization {
+public interface IInternalBlockEntityFragment extends IBlockEntityEventHandler, IBlockEntityBlockEventHandler, ScopedCompoundTagSerialization {
     @NotNull
     @Nonnull
     String name();

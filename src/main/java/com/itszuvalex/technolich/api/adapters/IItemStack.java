@@ -20,10 +20,13 @@ import javax.annotation.Nonnull;
 public interface IItemStack extends ICapabilitySerializable<CompoundTag>, IModuleProvider {
     IItemStack Empty = new IItemStack() {
         @Override
-        public CompoundTag serializeNBT() {return new CompoundTag();}
+        public CompoundTag serializeNBT() {
+            return new CompoundTag();
+        }
 
         @Override
-        public void deserializeNBT(CompoundTag nbt) {}
+        public void deserializeNBT(CompoundTag nbt) {
+        }
 
         @NotNull
         @Nonnull
@@ -40,53 +43,80 @@ public interface IItemStack extends ICapabilitySerializable<CompoundTag>, IModul
         }
 
         @Override
-        public ResourceLocation item() {return ForgeRegistries.ITEMS.getDefaultKey();}
+        public ResourceLocation item() {
+            return ForgeRegistries.ITEMS.getDefaultKey();
+        }
 
         @Override
-        public int stackSize() {return 0;}
+        public int stackSize() {
+            return 0;
+        }
 
         @Override
-        public void setStackSize(int size) {}
+        public void setStackSize(int size) {
+        }
 
         @Override
-        public int stackSizeMax() {return MCConstants.ITEMSTACK_MAX;}
+        public int stackSizeMax() {
+            return MCConstants.ITEMSTACK_MAX;
+        }
 
         @Override
-        public int damage() {return 0;}
+        public int damage() {
+            return 0;
+        }
 
         @Override
-        public void setDamage(int damage) {}
+        public void setDamage(int damage) {
+        }
 
         @Override
-        public int damageMax() {return 0;}
+        public int damageMax() {
+            return 0;
+        }
 
         @Override
-        public @Nullable CompoundTag nbt() {return null;}
+        public @Nullable CompoundTag nbt() {
+            return null;
+        }
 
         @Override
-        public boolean hasNbt() {return false;}
+        public boolean hasNbt() {
+            return false;
+        }
 
         @Override
         public @NotNull
         @Nonnull
-        ItemStack toMinecraft() {return ItemStack.EMPTY;}
+        ItemStack toMinecraft() {
+            return ItemStack.EMPTY;
+        }
 
         @Override
-        public boolean isEmpty() {return true;}
+        public boolean isEmpty() {
+            return true;
+        }
 
         @Override
-        public int room() {return 0;}
+        public int room() {
+            return 0;
+        }
 
         @Override
         public @NotNull
         @Nonnull
-        IItemStack copy() {return IItemStack.Empty;}
+        IItemStack copy() {
+            return IItemStack.Empty;
+        }
 
         @Override
-        public boolean isItemEqual(@NotNull @Nonnull IItemStack other) {return other.isEmpty();}
+        public boolean isItemEqual(@NotNull @Nonnull IItemStack other) {
+            return other.isEmpty();
+        }
 
         @Override
-        public void writeToNBT(@NotNull @Nonnull CompoundTag nbt) {}
+        public void writeToNBT(@NotNull @Nonnull CompoundTag nbt) {
+        }
     };
 
     Overideable<INBTObjectSerializer<IItemStack, CompoundTag>> NBT_SERIALIZER = new Overideable<>(new INBTObjectSerializer<IItemStack, CompoundTag>() {
@@ -102,8 +132,13 @@ public interface IItemStack extends ICapabilitySerializable<CompoundTag>, IModul
         }
     });
 
-    static IItemStack of(CompoundTag nbt) {
+    static @NotNull IItemStack of(@NotNull CompoundTag nbt) {
         return NBT_SERIALIZER.get().deserialize(nbt);
+    }
+
+    static @NotNull IItemStack of(@NotNull ItemStack stack) {
+        if (stack.isEmpty()) return IItemStack.Empty;
+        return new WrapperVanillaItemStack(stack);
     }
 
     ResourceLocation item();
@@ -142,7 +177,9 @@ public interface IItemStack extends ICapabilitySerializable<CompoundTag>, IModul
 
     boolean isEmpty();
 
-    default int room() {return stackSizeMax() - stackSize();}
+    default int room() {
+        return stackSizeMax() - stackSize();
+    }
 
     @NotNull
     @Nonnull

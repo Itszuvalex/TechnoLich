@@ -4,7 +4,6 @@ import com.itszuvalex.technolich.api.Modules;
 import com.itszuvalex.technolich.api.adapters.IBlockEntity;
 import com.itszuvalex.technolich.api.adapters.IModule;
 import com.itszuvalex.technolich.api.utility.NBTSerializationScope;
-import com.itszuvalex.technolich.core.IBlockEntityFragment;
 import com.itszuvalex.technolich.util.Color;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
@@ -15,7 +14,7 @@ import javax.annotation.Nonnull;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class FragColorable implements IBlockEntityFragment<Color> {
+public class FragColorable extends BlockEntityFragment<Color> {
     public static String COLOR_TAG = "color";
 
     private Color color;

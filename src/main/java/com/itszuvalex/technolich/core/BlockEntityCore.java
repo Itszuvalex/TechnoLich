@@ -1,6 +1,7 @@
 package com.itszuvalex.technolich.core;
 
 import com.itszuvalex.technolich.api.adapters.IBlockEntity;
+import com.itszuvalex.technolich.api.adapters.ILevel;
 import com.itszuvalex.technolich.api.adapters.IModule;
 import com.itszuvalex.technolich.api.utility.NBTSerializationScope;
 import com.itszuvalex.technolich.api.utility.ScopedCompoundTagSerialization;
@@ -21,7 +22,7 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 
-public class BlockEntityCore extends BlockEntity implements IBlockEntity, ScopedCompoundTagSerialization {
+public class BlockEntityCore extends BlockEntity implements IBlockEntity, IBlockEntityBlockEventHandler, ScopedCompoundTagSerialization {
     public static final String FRAG_KEY = "frags";
 
     protected final @NotNull
@@ -81,6 +82,12 @@ public class BlockEntityCore extends BlockEntity implements IBlockEntity, Scoped
     }
 
     @Override
+    public void reviveCaps() {
+        super.reviveCaps();
+        fragList.rehydrateFrags();
+    }
+
+    @Override
     public void invalidateCaps() {
         super.invalidateCaps();
         fragList.invalidateFrags();
@@ -112,5 +119,10 @@ public class BlockEntityCore extends BlockEntity implements IBlockEntity, Scoped
     @Override
     public @NotNull CompoundTag getUpdateTag() {
         return serialize(NBTSerializationScope.DESCRIPTION);
+    }
+
+    @Override
+    public void onRemove(@NotNull ILevel level, @NotNull BlockPos pos, @NotNull BlockState blockStatePrev) {
+        fragList.onRemove(level, pos, blockStatePrev);
     }
 }

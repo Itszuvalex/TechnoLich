@@ -16,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 
-public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, ScopedCompoundTagSerialization, IModuleCapabilityMap, IBlockEntityTickable {
+public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, IBlockEntityBlockEventHandler, ScopedCompoundTagSerialization, IModuleCapabilityMap, IBlockEntityTickable {
     private final @NotNull
     @Nonnull
     IMutableModuleCapabilityMap modCapMap;
@@ -96,5 +96,10 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
     public void rehydrateFrags() {
         modList.forEach(IBlockEntityEventHandler::rehydrateFrags);
         modCapMap.rehydrateFrags();
+    }
+
+    @Override
+    public void onRemove(@NotNull ILevel level, @NotNull BlockPos pos, @NotNull BlockState blockStatePrev) {
+        modList.forEach((i) -> i.onRemove(level, pos, blockStatePrev));
     }
 }
