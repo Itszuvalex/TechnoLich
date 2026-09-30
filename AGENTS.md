@@ -7,7 +7,9 @@ Guidance for coding agents (Claude Code, Codex, etc.) and humans working in this
 TechnoLich is a "techy-magic" Minecraft mod. Today it is almost entirely **framework**: block entities composed of fragments, a module/capability layer, scoped serialization, item/energy storage abstractions, and block entity networks. It registers no gameplay content yet; the only block is dev-only test content (see [Dev content and game tests](#dev-content-and-game-tests)).
 
 - **Minecraft 26.1.2 / NeoForge 26.1.2.112 / Java 25**, built with ModDevGradle (`net.neoforged.moddev`).
-- Ported from Forge 1.18.1 (`1.18.1-39.0.8`) on the `neoforge-26.1` branch; `master` still holds the Forge version.
+- **Written in Kotlin 2.4.0**, loaded by [Kotlin for Forge](https://github.com/thedarkcolour/KotlinForForge) 6.3.0 (`kff_version`, `modLoader="kotlinforforge"`). KFF is a **required mod at runtime**: it supplies the Kotlin stdlib, so players must install it alongside TechnoLich. The build pulls it from the KFF maven.
+- Ported from Forge 1.18.1 (`1.18.1-39.0.8`, Java) on the `neoforge-26.1` branch; `main` still holds the Forge version.
+- The same framework, in Kotlin, is shared with ItszuLib (https://github.com/Itszuvalex/ItszuLib, branch `neoforge-26.1`, package `com.itszuvalex.itszulib`). When changing framework code here, make the matching change there.
 - Mod id `technolich`, base package `com.itszuvalex.technolich`, MIT licensed.
 
 ## Build and run
@@ -46,33 +48,39 @@ The maintainer keeps offline mirrors of 2–5 at `~/Repos/neoforge-docs/html/` (
 
 ## Source layout
 
+Related types share a file, so look for the file named after the group, not the class.
+
 ```
-src/main/java/com/itszuvalex/technolich/
-├── TechnoLich.java            @Mod entry: module init, dev content (non-production only), server tick → NetworkManager
+src/main/kotlin/com/itszuvalex/technolich/
+├── TechnoLich.kt          @Mod object (KFF): module init, data components, dev content (non-production only),
+│                          server tick / chunk unload / server stop → NETWORK_MANAGER
 ├── api/
-│   ├── Capabilities.java      TechnoLich block capabilities (COLORABLE)
-│   ├── Modules.java           Built-in modules (COLORABLE); Modules.init() forces registration
-│   ├── ModuleCapabilities.java Registers a BlockEntityCore type's modules + STANDARD NeoForge caps
-│   ├── adapters/              Engine-facing interfaces: IModule/Module, IModuleProvider, IBlockEntity,
-│   │                          ILevel, IItemStack, IBattery
-│   ├── storage/               IItemStorage + implementations (Array, Slice, Aggregate, NBT, Dynamic,
-│   │                          ResourceHandler-backed); IBattery implementations (PowerBattery,
-│   │                          PowerBatteryNBT, DynamicIBattery, EnergyHandler-backed)
-│   ├── utility/               Loc4 (+Level/ILevel/Indirect), LocationTracker, ChunkCoord, module
-│   │                          capability maps, IScopedSerialization + NBTSerializationScope, Overideable,
-│   │                          LazySingleSidedHolder, misc helpers
-│   └── wrappers/              Vanilla/NeoForge → TechnoLich adapters and back (WrapperLevel,
-│                              WrapperBlockEntity, WrapperVanillaItemStack, WrapperContainerIItemStorage,
-│                              WrapperResourceHandlerIItemStorage, WrapperEnergyHandlerIBattery, ...)
-├── core/                      Block entity framework: BlockEntityCore, TickableBlockEntityCore,
-│   │                          EntityBlockCore, TickableEntityBlockCore, BlockEntityFragmentCollection,
-│   │                          fragment interfaces, networks (INetwork, TileNetwork, NetworkManager,
-│   │                          INetworkNode, TileNetworkNode), SidedStorageConfiguration
-│   └── frag/                  Fragment base classes and fragments (FragColorable, FragDropInventory)
-├── dev/                       Dev-only test block + game tests (never registered in production)
-├── network/PacketHandler.java Thin wrapper over NeoForge's PayloadRegistrar (no payloads yet)
-└── util/                      Color, InventoryUtils (item dropping), Singleton
-src/test/java/...              JUnit tests + Testable* fakes that avoid vanilla objects
+│   ├── Api.kt             Capabilities (COLORABLE), Modules (COLORABLE; Modules.init()), Components
+│   │                      (FRAGMENT_DATA = technolich:fragment_data), ModuleCapabilities (registers a
+│   │                      BlockEntityCore type's modules + STANDARD NeoForge caps)
+│   ├── adapters/          IModule.kt (IModule, IModuleProvider, Module), Adapters.kt (IBlockEntity, ILevel,
+│   │                      IBattery), IItemStack.kt, IColorable.kt
+│   ├── storage/           IItemStorage.kt; ItemStorages.kt (Array, Slice, Aggregate, Dynamic, NBT,
+│   │                      ResourceHandler-backed); Batteries.kt (PowerBattery, PowerBatteryNBT,
+│   │                      DynamicIBattery, BatteryEnergyHandler)
+│   ├── utility/           Loc4 (+Level/ILevel/Indirect), ChunkCoord, LocationTracker, DirectionUtil,
+│   │                      ModuleCapabilityMaps.kt, IScopedSerialization + NBTSerializationScope, Overideable,
+│   │                      SidedHolders.kt (LazySingleSidedHolder, SingleSidedSupplier), misc helpers
+│   └── wrappers/          Wrappers.kt: Vanilla/NeoForge ↔ TechnoLich adapters (WrapperLevel, WrapperBlockEntity,
+│                          WrapperVanillaItemStack, WrapperContainerIItemStorage,
+│                          WrapperResourceHandlerIItemStorage, WrapperEnergyHandlerIBattery, WrapperCache, ...)
+├── core/                  BlockEntityCore.kt (BlockEntityCore, TickableBlockEntityCore, EntityBlockCore,
+│   │                      TickableEntityBlockCore), Fragments.kt (fragment interfaces, IFragmentHost,
+│   │                      BlockEntityFragmentCollection), Networks.kt (INetwork, TileNetwork, NetworkManager,
+│   │                      INetworkNode, TileNetworkNode, NetworkEdge), SidedStorageConfiguration.kt
+│   └── frag/              FragmentBases.kt (InternalBlockEntityFragment, BlockEntityFragment),
+│                          Frags.kt (FragColorable, FragDropInventory)
+├── dev/                   DevContent.kt (dev-only block + block entity), DevGameTests.kt; never registered in
+│                          production
+├── network/PacketHandler.kt Thin wrapper over NeoForge's PayloadRegistrar (no payloads yet)
+└── util/                  Color, InventoryUtils.kt (item dropping, Singleton)
+src/test/kotlin/...        JUnit tests; fakes in TestHelpers.kt (TestableLevel, TestableIItemStack, TestableLoc4,
+                           MCAssert, TestIO) and core/CoreTests.kt (TestableNetwork*, TestableFragmentHost)
 ```
 
 ## Core concepts
@@ -84,7 +92,7 @@ A `BlockEntityCore` owns a `BlockEntityFragmentCollection` (`fragList`). Behavio
 - `fragList.addInternalFragment(IInternalBlockEntityFragment)`: hooks without an exposed module (serialization, `onRemove`, e.g. `FragDropInventory`).
 - Fragment `name()`s must be unique per block entity (they key saved data), and each module may be exposed by only one fragment; both throw `IllegalArgumentException` otherwise.
 - Each fragment gets an `IFragmentHost` through `onAttach` when added (`BlockEntityCore` is the host). Fragments extending `InternalBlockEntityFragment`/`BlockEntityFragment` call `markDirty()` after changing saved state and `markDirtyAndSync()` after changing client-visible (DESCRIPTION) state; the latter also sends a block update to clients.
-- Storages report their own changes: construct `ItemStorageArray`/`ItemStorageNBT`/`PowerBattery` with an `onChanged` runnable (e.g. `this::markDirty`) and every `setSlot`/`setStorage` runs it. `setSlotQuietly`/`setStorageQuietly` skip it; the NeoForge adapters use those inside transactions and call `setChanged()` once on root commit, so aborted transactions never dirty the block entity.
+- Storages report their own changes: construct `ItemStorageArray`/`ItemStorageNBT`/`PowerBattery` with an `onChanged` runnable (e.g. `ItemStorageArray(1) { markDirty() }`) and every `setSlot`/`setStorage` runs it. `setSlotQuietly`/`setStorageQuietly` skip it; the NeoForge adapters use those inside transactions and call `setChanged()` once on root commit, so aborted transactions never dirty the block entity.
 - `fragList.addCapability(BlockCapability<T, Direction>, side -> T)`: expose a non-module capability, typically one of `ModuleCapabilities.STANDARD` (NeoForge item/fluid/energy).
 - `fragList.addTickable(...)`: ticked by `TickableBlockEntityCore` when the block's `TickableEntityBlockCore#hasTicker(side)` returns true.
 
@@ -93,7 +101,7 @@ A `BlockEntityCore` owns a `BlockEntityFragmentCollection` (`fragList`). Behavio
 ### Modules and capabilities
 An `IModule<T>` is a handle for a behaviour, identified by a namespaced `Identifier` (`id()`, e.g. `technolich:colorable`), optionally backed by a NeoForge `BlockCapability<T, Direction>` and/or `ItemCapability<T, ItemAccess>`. Register with `Module.registerModule(id, blockCap[, itemCap])`; ids must be unique (the registry is thread-safe for parallel mod construction).
 
-- Internal lookups: `IModuleProvider#getModule(module, side)` returns `Optional<T>` (implemented by `BlockEntityCore`, `IItemStack`, `WrapperBlockEntity`, etc.).
+- Internal lookups: `IModuleProvider.getModule(module, side)` returns `T?` (null when not exposed) (implemented by `BlockEntityCore`, `IItemStack`, `WrapperBlockEntity`, etc.).
 - External lookups (other mods): standard NeoForge `level.getCapability(cap, pos, side)`. For this to work, **call `ModuleCapabilities.registerBlockEntity(event, type)` for every `BlockEntityCore` type** from a `RegisterCapabilitiesEvent` listener (mod bus). It registers every module's block capability plus `STANDARD`, all routed to `BlockEntityCore#getCapability`.
 - Modules must be registered before `RegisterCapabilitiesEvent`; put them in static fields of a class that is loaded during mod construction (see `Modules.init()`).
 - `BlockEntityCore#deserialize` calls `invalidateCapabilities()` after loading, since fragments may replace exposed objects. If a fragment swaps its exposed object at any other time, call `invalidateCapabilities()` on the block entity.
@@ -113,16 +121,16 @@ Each fragment writes into its own child keyed by `name()` under the `frags` key.
 
 ### NeoForge transfer API adapters
 NeoForge 26.1 replaced `IItemHandler`/`IEnergyStorage` with transactional `ResourceHandler<ItemResource>` and `EnergyHandler`.
-- TechnoLich → NeoForge: `WrapperResourceHandlerIItemStorage.of(storage)` (one NeoForge `ItemStackResourceHandler` per slot; honours `canInsert` and per-slot `maxStackSize`), `new WrapperEnergyHandlerIBattery(battery)` (snapshot journal; energy is truncated to whole units). Create once per block entity and return the same instance from capability providers.
+- TechnoLich → NeoForge: `WrapperResourceHandlerIItemStorage.of(storage)` (one NeoForge `ItemStackResourceHandler` per slot; honours `canInsert` and per-slot `maxStackSize`), `WrapperEnergyHandlerIBattery(battery)` (snapshot journal; energy is truncated to whole units). Create once per block entity and return the same instance from capability providers.
 - NeoForge → TechnoLich: `ItemStorageResourceHandler`, `BatteryEnergyHandler`. Their mutators open **root** transactions, so never call them while a transaction is open.
 
 ### Networks
-`INetwork`/`TileNetwork` group `INetworkNode`s (located by `Loc4`) into server-side networks managed by `NetworkManager` (`TechnoLich.NETWORK_MANAGER`, server side only; ticked from `ServerTickEvent.Pre/Post`). Nodes are found through a network module on the block entity (`TileNetwork#networkModule`). `LocationTracker` indexes locations by dimension and chunk. See the Javadoc on `INetwork` for the design rationale.
+`INetwork`/`TileNetwork` group `INetworkNode`s (located by `Loc4`) into server-side networks managed by `NetworkManager` (`TechnoLich.NETWORK_MANAGER`, server side only; ticked from `ServerTickEvent.Pre/Post`). Nodes are found through a network module on the block entity (`TileNetwork#networkModule`). `LocationTracker` indexes locations by dimension and chunk. See the KDoc on `INetwork` for the design rationale. Node and edge collections are `Sequence`s.
 
 Lifecycle: `TechnoLich` forwards server `ChunkEvent.Unload` to `NetworkManager#onChunkUnload`, which drops that chunk's nodes as a batch; block entities must re-add their node when they load. Removed nodes get `onRemoved`, absorbed networks get `onTakeover`, and `addNode` moves a node out of any previous network first. Connecting two nodes pulls both (and their networks) into the network doing the connecting. Splitting explores iteratively, so long cable lines are safe.
 
 ### Engine seams for testing
-`ILevel`, `IBlockEntity`, `IItemStack` and `Overideable` exist so logic can be unit tested without a running game. Tests use `TestableLevel`, `TestableIItemStack`, `TestableLoc4`, `TestableNetwork*`; `MCAssert.failVanillaClass` marks methods that must not be reached in tests.
+`ILevel`, `IBlockEntity`, `IItemStack` and `Overideable` exist so logic can be unit tested without a running game. Tests use `TestableLevel`, `TestableIItemStack`, `TestableLoc4`, `TestableNetwork*`, `TestableFragmentHost`; `MCAssert.failVanillaClass` marks methods that must not be reached in tests, and `TestIO` round-trips Value I/O.
 
 ## Dev content and game tests
 
@@ -132,13 +140,16 @@ Lifecycle: `TechnoLich` forwards server `ChunkEvent.Unload` to `NetworkManager#o
 
 ## Testing conventions
 
-- Unit tests: `src/test`, JUnit 5, names like `Method_ExpectedBehavior`. ModDevGradle's unit-test support puts Minecraft classes on the classpath, but anything needing registries or a level belongs in a game test.
+- Unit tests: `src/test/kotlin`, JUnit 5, names like `Method_ExpectedBehavior`. ModDevGradle's unit-test support puts Minecraft classes on the classpath, but anything needing registries or a level belongs in a game test.
 - Add a game test for any behaviour that crosses into vanilla/NeoForge (serialization with real items, capabilities, block lifecycle).
 - Verify with `./gradlew build` **and** `./gradlew runGameTestServer`.
 
-## Code style
+## Kotlin conventions
 
-- Annotate reference parameters and returns with both `@NotNull`/`@Nullable` (JetBrains) and `@Nonnull` (javax), matching existing code.
-- Prefer `Optional` for internal lookups; use `@Nullable T` only where NeoForge expects it (capability providers).
-- Lambdas use parenthesized parameters: `(x) -> ...`.
+- The `@Mod` class is a Kotlin `object`. Use `thedarkcolour.kotlinforforge.neoforge.forge.MOD_BUS` for the mod event bus and `NeoForge.EVENT_BUS` for game events.
+- Registries are `DeferredRegister`s in `object`s, registered from `TechnoLich`'s `init`.
+- Nullability lives in the types: return `T?` for "may be absent" (no `Optional`, no `@NotNull`/`@Nullable` annotations). Keep NeoForge-facing capability providers nullable where NeoForge expects it.
+- Prefer `Sequence` over `Stream`, and properties for simple getters (`Loc4.x`, `IModule.id`, `Color.red`).
+- Storage and battery classes are `open` so block entities can subclass them (e.g. to override `maxStackSize`).
+- Add `@JvmField`/`@JvmStatic`/`@JvmOverloads` where Java callers or reflection need plain fields, statics or default arguments.
 - Keep vanilla/NeoForge types out of `api/adapters` interfaces where a TechnoLich abstraction already exists.
