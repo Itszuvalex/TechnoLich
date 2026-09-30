@@ -140,10 +140,17 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
         return true;
     }
 
+    /**
+     * Adds the node, first removing it from any other network it belongs to, then connects it to every node here it
+     * can connect to.  No-op if the node is already in this network.
+     */
     @Override
     public void addNode(@NotNull C node) {
+        if (nodeMap.get(node.getLoc()) == node) return;
         if (!canAddNode(node)) return;
         if (!node.canAdd(castThis())) return;
+        var previous = node.getNetwork();
+        if (previous != null && previous != this) previous.removeNode(node);
         addNodeSilently(node);
         node.onAdded(castThis());
         getNodes().filter((c) -> canConnectNodes(node, c)).forEach((a) -> addConnectionNodes(a, node));
@@ -154,6 +161,9 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
         removeNodes(Stream.of(node));
     }
 
+    /**
+     * Removes the nodes as a batch, calls {@link INetworkNode#onRemoved} on each, then splits whatever is left.
+     */
     @Override
     public void removeNodes(@NotNull Stream<C> nodes) {
         List<Loc4> nodeLocs = nodes.map(C::getLoc).toList();
@@ -169,14 +179,17 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
         edges.removeAll(nodeLocSet);
 
         // Remove connections as batch
+        List<C> removed = new ArrayList<>();
         nodeLocSet.forEach((a) -> {
             getConnections(a)
                     .map(Stream::toList) // Realize the Stream, as we're about to modify the underlying structure.
                     .ifPresent((b) -> b
                             .forEach((c) -> removeConnectionBatch(a, c)));
-            nodeMap.remove(a);
+            var node = nodeMap.remove(a);
+            if (node != null) removed.add(node);
             locationTracker.removeLocation(a);
         });
+        removed.forEach((n) -> n.onRemoved(castThis()));
 
         split(edges);
 
@@ -222,6 +235,7 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
 
     @Override
     public void takeover(@NotNull N network) {
+        network.onTakeover(castThis());
         network.getNodes().forEach(this::addNodeSilently);
         network.getEdges().forEach((c) -> addConnectionSilently(c.a(), c.b()));
         network.clear();
@@ -291,16 +305,25 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
         FunctionalHelpers.getOrElseUpdate(connectionMap, b, HashSet::new).add(a);
     }
 
+    /**
+     * Pulls both nodes (and their networks) into this network, then informs them of the connection.
+     */
     private void addConnectionInternal(@NotNull @Nonnull C a, @NotNull @Nonnull C b) {
-        if (a.getNetwork() != b.getNetwork()) {
-            if (a.getNetwork() == this) {
-                takeover(b.getNetwork());
-            } else {
-                takeover(a.getNetwork());
-            }
-        }
+        absorb(a);
+        absorb(b);
         a.onConnect(b.getLoc());
         b.onConnect(a.getLoc());
+    }
+
+    private void absorb(@NotNull @Nonnull C node) {
+        var network = node.getNetwork();
+        if (network == this) return;
+        if (network == null) {
+            addNodeSilently(node);
+            node.onAdded(castThis());
+        } else {
+            takeover(network);
+        }
     }
 
     private void removeConnectionBatch(@NotNull @Nonnull Loc4 a, @NotNull @Nonnull Loc4 b) {
@@ -329,19 +352,22 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
     }
 
     public static class NetworkExplorer {
+        /**
+         * @return Every location reachable from start through the network's connections, including start.
+         * Iterative, so long chains (e.g. cables) can't overflow the stack.
+         */
         public static <C extends INetworkNode<C, N>, N extends TileNetwork<C, N>>
         @NotNull HashSet<Loc4> explore(@NotNull @Nonnull Loc4 start, @NotNull @Nonnull TileNetwork<C, N> network) {
-            return expandLoc(start, network, new HashSet<>());
-        }
-
-        public static <C extends INetworkNode<C, N>, N extends TileNetwork<C, N>> HashSet<Loc4>
-        expandLoc(@NotNull @Nonnull Loc4 start, @NotNull @Nonnull TileNetwork<C, N> network,
-                  @NotNull @Nonnull HashSet<Loc4> explored) {
-            if (explored.contains(start)) {
-                return explored;
-            }
+            HashSet<Loc4> explored = new HashSet<>();
+            ArrayDeque<Loc4> frontier = new ArrayDeque<>();
             explored.add(start);
-            network.getConnections(start).ifPresent((i) -> i.forEach((j) -> expandLoc(j, network, explored)));
+            frontier.add(start);
+            while (!frontier.isEmpty()) {
+                var loc = frontier.poll();
+                network.getConnections(loc).ifPresent((i) -> i.forEach((j) -> {
+                    if (explored.add(j)) frontier.add(j);
+                }));
+            }
             return explored;
         }
     }

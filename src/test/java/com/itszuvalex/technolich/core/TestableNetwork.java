@@ -13,6 +13,10 @@ public class TestableNetwork extends TileNetwork<TestableNetworkNode, TestableNe
     private final @NotNull
     @Nonnull
     INetworkManager manager;
+    /**
+     * The network that took this one over, via onTakeover.
+     */
+    public TestableNetwork takenOverBy;
 
     public TestableNetwork(int ID, @NotNull @Nonnull IModule<TestableNetworkNode> module,
                            @NotNull @Nonnull INetworkManager manager) {
@@ -39,5 +43,10 @@ public class TestableNetwork extends TileNetwork<TestableNetworkNode, TestableNe
     @Override
     public void unregister() {
         manager.removeNetwork(this);
+    }
+
+    @Override
+    public void onTakeover(@NotNull TestableNetwork network) {
+        takenOverBy = network;
     }
 }

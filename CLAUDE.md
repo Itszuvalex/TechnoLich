@@ -119,6 +119,8 @@ NeoForge 26.1 replaced `IItemHandler`/`IEnergyStorage` with transactional `Resou
 ### Networks
 `INetwork`/`TileNetwork` group `INetworkNode`s (located by `Loc4`) into server-side networks managed by `NetworkManager` (`TechnoLich.NETWORK_MANAGER`, server side only; ticked from `ServerTickEvent.Pre/Post`). Nodes are found through a network module on the block entity (`TileNetwork#networkModule`). `LocationTracker` indexes locations by dimension and chunk. See the Javadoc on `INetwork` for the design rationale.
 
+Lifecycle: `TechnoLich` forwards server `ChunkEvent.Unload` to `NetworkManager#onChunkUnload`, which drops that chunk's nodes as a batch; block entities must re-add their node when they load. Removed nodes get `onRemoved`, absorbed networks get `onTakeover`, and `addNode` moves a node out of any previous network first. Connecting two nodes pulls both (and their networks) into the network doing the connecting. Splitting explores iteratively, so long cable lines are safe.
+
 ### Engine seams for testing
 `ILevel`, `IBlockEntity`, `IItemStack` and `Overideable` exist so logic can be unit tested without a running game. Tests use `TestableLevel`, `TestableIItemStack`, `TestableLoc4`, `TestableNetwork*`; `MCAssert.failVanillaClass` marks methods that must not be reached in tests.
 

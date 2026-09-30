@@ -2,6 +2,8 @@ package com.itszuvalex.technolich;
 
 import com.itszuvalex.technolich.api.Components;
 import com.itszuvalex.technolich.api.Modules;
+import com.itszuvalex.technolich.api.adapters.ILevel;
+import com.itszuvalex.technolich.api.utility.ChunkCoord;
 import com.itszuvalex.technolich.api.utility.LazySingleSidedHolder;
 import com.itszuvalex.technolich.core.NetworkManager;
 import com.itszuvalex.technolich.dev.DevContent;
@@ -13,6 +15,8 @@ import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
+import net.minecraft.world.level.Level;
+import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import org.slf4j.Logger;
@@ -51,5 +55,16 @@ public class TechnoLich {
     @SubscribeEvent
     public void onServerTickPost(ServerTickEvent.Post event) {
         NETWORK_MANAGER.get(LogicalSide.SERVER).ifPresent(NetworkManager::onTickEnd);
+    }
+
+    /**
+     * Networks only track loaded block entities; drop nodes in a chunk as a batch when it unloads.
+     */
+    @SubscribeEvent
+    public void onChunkUnload(ChunkEvent.Unload event) {
+        if (!(event.getLevel() instanceof Level level) || level.isClientSide()) return;
+        var pos = event.getChunk().getPos();
+        NETWORK_MANAGER.get(LogicalSide.SERVER).ifPresent((manager) ->
+                manager.onChunkUnload(ILevel.of(level), new ChunkCoord(pos.x(), pos.z())));
     }
 }

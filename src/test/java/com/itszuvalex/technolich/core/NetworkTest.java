@@ -363,4 +363,83 @@ class NetworkTest {
         var testEdge = new NetworkEdge(node.getLoc(), other.getLoc());
         Assertions.assertEquals(List.of(testEdge), state.network.getEdges().toList());
     }
+
+    @Test
+    void AddConnectionNodes_NeitherNodeInThisNetwork_AbsorbBothAndNotifyTakeovers() {
+        // Arrange
+        var state = getState();
+        var network2 = new TestableNetwork(networkManager.getNextID(), module, networkManager);
+        network2.register();
+        var network3 = new TestableNetwork(networkManager.getNextID(), module, networkManager);
+        network3.register();
+        var a = state.createNode(new BlockPos(0, 0, 0));
+        network2.addNode(a);
+        var b = state.createNode(new BlockPos(5, 0, 0));
+        network3.addNode(b);
+        // Act
+        state.network.addConnectionNodes(a, b);
+        // Assert
+        Assertions.assertSame(state.network, a.getNetwork());
+        Assertions.assertSame(state.network, b.getNetwork());
+        Assertions.assertEquals(2, state.network.size());
+        Assertions.assertSame(state.network, network2.takenOverBy);
+        Assertions.assertSame(state.network, network3.takenOverBy);
+        Assertions.assertTrue(networkManager.getNetwork(network2.ID()).isEmpty());
+        Assertions.assertTrue(networkManager.getNetwork(network3.ID()).isEmpty());
+    }
+
+    @Test
+    void AddNode_NodeInAnotherNetwork_MoveIt() {
+        // Arrange
+        var state = getState();
+        var network2 = new TestableNetwork(networkManager.getNextID(), module, networkManager);
+        network2.register();
+        var node = state.createNode(new BlockPos(0, 0, 0));
+        network2.addNode(node);
+        // Act
+        state.network.addNode(node);
+        // Assert
+        Assertions.assertSame(state.network, node.getNetwork());
+        Assertions.assertEquals(List.of(network2), node.removedFrom);
+        Assertions.assertEquals(0, network2.size());
+        Assertions.assertTrue(networkManager.getNetwork(network2.ID()).isEmpty());
+        // Adding again is a no-op.
+        state.network.addNode(node);
+        Assertions.assertEquals(1, state.network.size());
+        Assertions.assertEquals(List.of(network2), node.removedFrom);
+    }
+
+    @Test
+    void OnChunkUnload_RemoveNodesInChunkAndNotifyThem() {
+        // Arrange: a line across the chunk 0 / chunk 1 boundary (x 15 | 16).
+        var state = getState();
+        var nodes = java.util.stream.IntStream.rangeClosed(14, 17)
+                .mapToObj((x) -> state.createNode(new BlockPos(x, 0, 0))).toList();
+        nodes.forEach(state.network::addNode);
+        Assertions.assertEquals(4, state.network.size());
+        // Act
+        networkManager.onChunkUnload(state.level, new com.itszuvalex.technolich.api.utility.ChunkCoord(1, 0));
+        // Assert
+        Assertions.assertEquals(2, state.network.size());
+        Assertions.assertTrue(nodes.get(0).removedFrom.isEmpty());
+        Assertions.assertTrue(nodes.get(1).removedFrom.isEmpty());
+        Assertions.assertEquals(List.of(state.network), nodes.get(2).removedFrom);
+        Assertions.assertEquals(List.of(state.network), nodes.get(3).removedFrom);
+    }
+
+    @Test
+    void Explore_VeryLongChain_NoStackOverflow() {
+        // Arrange
+        var state = getState();
+        int length = 100_000;
+        var locs = java.util.stream.IntStream.range(0, length)
+                .mapToObj((x) -> (Loc4) new com.itszuvalex.technolich.api.utility.Loc4Indirect(dimension, new BlockPos(x, 0, 0)))
+                .toList();
+        var edges = java.util.stream.IntStream.range(1, length).mapToObj((i) -> new NetworkEdge(locs.get(i - 1), locs.get(i)));
+        var network = state.network.createWithNodesAndEdges(locs.stream().map(TestableNetworkNode::new), edges);
+        // Act
+        var reached = TileNetwork.NetworkExplorer.explore(locs.get(0), network);
+        // Assert
+        Assertions.assertEquals(length, reached.size());
+    }
 }
