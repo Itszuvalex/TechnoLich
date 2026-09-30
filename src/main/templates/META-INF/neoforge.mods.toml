@@ -4,6 +4,10 @@
 # Note that there are a couple of TOML lists in this file.
 # Find more information on toml format here:  https://github.com/toml-lang/toml
 
+# Kotlin for Forge provides the language loader for Kotlin `object` @Mod classes.
+modLoader="kotlinforforge"
+loaderVersion="[6.3,)"
+
 # The license for you mod. This is mandatory metadata and allows for easier comprehension of your redistributive properties.
 # Review your options at https://choosealicense.com/. All rights reserved is the default copyright stance, and is thus the default here.
 license="${mod_license}"
