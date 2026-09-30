@@ -20,7 +20,15 @@ TechnoLich is a "techy-magic" Minecraft mod. Today it is almost entirely **frame
 ./gradlew runServer             # dev dedicated server (run/eula.txt must say eula=true)
 ```
 
-`gradle.properties` pins the Gradle JVM and toolchain to Nix-provided JDKs under `/home/cchharris/.gradle/jdks/` (`org.gradle.java.home`, `org.gradle.java.installations.paths`, auto-download disabled). This works around NixOS being unable to run the generic-Linux JDKs Gradle downloads. On another machine, edit or remove those three lines. `gradlew` itself still needs some `java` on `PATH` or `JAVA_HOME` to start.
+The build targets a JDK 25 toolchain, and NeoForge's tooling also uses JDK 21. By default Gradle auto-detects installed JDKs and downloads missing ones through the foojay resolver (`settings.gradle`). `gradlew` itself needs Java 17+ on `PATH` or `JAVA_HOME` to start.
+
+Machine-specific JDK settings go in the user-level `~/.gradle/gradle.properties` (or `$GRADLE_USER_HOME/gradle.properties`), never in the project's `gradle.properties`. NixOS can't run the generic-Linux JDKs Gradle downloads, so point it at Nix JDKs there:
+
+```properties
+org.gradle.java.home=/home/cchharris/.gradle/jdks/jdk25
+org.gradle.java.installations.paths=/home/cchharris/.gradle/jdks/jdk25,/home/cchharris/.gradle/jdks/jdk21
+org.gradle.java.installations.auto-download=false
+```
 
 Mod metadata is generated from `src/main/templates/META-INF/neoforge.mods.toml` using the `mod_*` properties in `gradle.properties`.
 
