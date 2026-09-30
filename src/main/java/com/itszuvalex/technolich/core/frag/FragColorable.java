@@ -6,23 +6,20 @@ import com.itszuvalex.technolich.api.adapters.IModule;
 import com.itszuvalex.technolich.api.utility.NBTSerializationScope;
 import com.itszuvalex.technolich.util.Color;
 import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraftforge.common.util.LazyOptional;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class FragColorable extends BlockEntityFragment<Color> {
     public static String COLOR_TAG = "color";
 
     private Color color;
-    private LazyOptional<Color> colorOpt;
 
     public FragColorable(Color color) {
         this.color = color;
-        this.colorOpt = LazyOptional.of(() -> color);
     }
 
     public FragColorable() {
@@ -30,17 +27,14 @@ public class FragColorable extends BlockEntityFragment<Color> {
     }
 
     @Override
-    public void serializeTo(NBTSerializationScope scope, @NotNull CompoundTag tag) {
-        tag.putInt(COLOR_TAG, color.toInt());
+    public void serializeTo(NBTSerializationScope scope, @NotNull ValueOutput output) {
+        output.putInt(COLOR_TAG, color.toInt());
     }
 
     @Override
-    public void deserialize(@NotNull CompoundTag nbt, NBTSerializationScope scope) {
-        var lastcolor = colorOpt;
-        var ci = nbt.getInt(COLOR_TAG);
+    public void deserialize(@NotNull ValueInput input, NBTSerializationScope scope) {
+        var ci = input.getIntOr(COLOR_TAG, 0);
         color = new Color(ci);
-        colorOpt = LazyOptional.of(() -> color);
-        lastcolor.invalidate();
     }
 
     @Override
@@ -55,26 +49,12 @@ public class FragColorable extends BlockEntityFragment<Color> {
 
     @Override
     public @Nonnull
-    @NotNull Function<Direction, Supplier<LazyOptional<Color>>> faceToModuleSupplierMapper(@NotNull IBlockEntity be) {
-        return (d) -> this::getColorOpt;
-    }
-
-    private LazyOptional<Color> getColorOpt() {
-        return colorOpt;
+    @NotNull Function<Direction, Color> faceToModuleMapper(@NotNull IBlockEntity be) {
+        return (d) -> color;
     }
 
     @Override
     public @NotNull String name() {
         return "Colorable";
-    }
-
-    @Override
-    public void invalidateFrags() {
-        colorOpt.invalidate();
-    }
-
-    @Override
-    public void rehydrateFrags() {
-        colorOpt = LazyOptional.of(() -> color);
     }
 }

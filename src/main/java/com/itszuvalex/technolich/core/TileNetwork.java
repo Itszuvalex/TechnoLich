@@ -7,7 +7,7 @@ import com.itszuvalex.technolich.api.utility.ChunkCoord;
 import com.itszuvalex.technolich.api.utility.FunctionalHelpers;
 import com.itszuvalex.technolich.api.utility.Loc4;
 import com.itszuvalex.technolich.api.utility.LocationTracker;
-import net.minecraftforge.fml.LogicalSide;
+import net.neoforged.fml.LogicalSide;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -283,9 +283,7 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
         if (BEopt.isEmpty()) return Optional.empty();
 
         var BE = BEopt.get();
-        var BEmodLazyOpt = BE.getModule(networkModule(), null);
-        if (!BEmodLazyOpt.isPresent()) return Optional.empty();
-        return BEmodLazyOpt.resolve();
+        return BE.getModule(networkModule(), null);
     }
 
     private void addConnectionSilently(@NotNull @Nonnull Loc4 a, @NotNull @Nonnull Loc4 b) {

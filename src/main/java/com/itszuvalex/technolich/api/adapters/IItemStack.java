@@ -1,50 +1,32 @@
 package com.itszuvalex.technolich.api.adapters;
 
-import com.itszuvalex.technolich.api.utility.INBTObjectSerializer;
 import com.itszuvalex.technolich.api.utility.MCConstants;
 import com.itszuvalex.technolich.api.utility.Overideable;
 import com.itszuvalex.technolich.api.wrappers.WrapperVanillaItemStack;
+import com.mojang.serialization.Codec;
 import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ICapabilitySerializable;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
+import java.util.Optional;
 
-public interface IItemStack extends ICapabilitySerializable<CompoundTag>, IModuleProvider {
+public interface IItemStack extends IModuleProvider {
     IItemStack Empty = new IItemStack() {
-        @Override
-        public CompoundTag serializeNBT() {
-            return new CompoundTag();
-        }
-
-        @Override
-        public void deserializeNBT(CompoundTag nbt) {
-        }
-
         @NotNull
         @Nonnull
         @Override
-        public <T> LazyOptional<T> getCapability(@NotNull @Nonnull Capability<T> cap, @Nullable Direction side) {
-            return LazyOptional.empty();
-        }
-
-        @NotNull
-        @Nonnull
-        @Override
-        public <T> LazyOptional<T> getModule(@NotNull @Nonnull IModule<T> module, @Nullable Direction side) {
-            return LazyOptional.empty();
+        public <T> Optional<T> getModule(@NotNull @Nonnull IModule<T> module, @Nullable Direction side) {
+            return Optional.empty();
         }
 
         @Override
-        public ResourceLocation item() {
-            return ForgeRegistries.ITEMS.getDefaultKey();
+        public Identifier item() {
+            return BuiltInRegistries.ITEM.getDefaultKey();
         }
 
         @Override
@@ -76,12 +58,12 @@ public interface IItemStack extends ICapabilitySerializable<CompoundTag>, IModul
         }
 
         @Override
-        public @Nullable CompoundTag nbt() {
-            return null;
+        public @NotNull DataComponentPatch components() {
+            return DataComponentPatch.EMPTY;
         }
 
         @Override
-        public boolean hasNbt() {
+        public boolean hasComponents() {
             return false;
         }
 
@@ -113,27 +95,16 @@ public interface IItemStack extends ICapabilitySerializable<CompoundTag>, IModul
         public boolean isItemEqual(@NotNull @Nonnull IItemStack other) {
             return other.isEmpty();
         }
-
-        @Override
-        public void writeToNBT(@NotNull @Nonnull CompoundTag nbt) {
-        }
     };
 
-    Overideable<INBTObjectSerializer<IItemStack, CompoundTag>> NBT_SERIALIZER = new Overideable<>(new INBTObjectSerializer<IItemStack, CompoundTag>() {
-        @Override
-        public void serialize(IItemStack obj, CompoundTag tag) {
-            obj.writeToNBT(tag);
-        }
+    /**
+     * Codec used to persist IItemStacks.  Overridable so tests can serialize without vanilla ItemStacks.
+     */
+    Overideable<Codec<IItemStack>> CODEC = new Overideable<>(
+            ItemStack.OPTIONAL_CODEC.xmap(IItemStack::of, IItemStack::toMinecraft));
 
-        @Override
-        public IItemStack deserialize(CompoundTag tag) {
-            var stack = ItemStack.of(tag);
-            return stack == ItemStack.EMPTY ? IItemStack.Empty : new WrapperVanillaItemStack(stack);
-        }
-    });
-
-    static @NotNull IItemStack of(@NotNull CompoundTag nbt) {
-        return NBT_SERIALIZER.get().deserialize(nbt);
+    static @NotNull Codec<IItemStack> codec() {
+        return CODEC.get();
     }
 
     static @NotNull IItemStack of(@NotNull ItemStack stack) {
@@ -141,7 +112,7 @@ public interface IItemStack extends ICapabilitySerializable<CompoundTag>, IModul
         return new WrapperVanillaItemStack(stack);
     }
 
-    ResourceLocation item();
+    Identifier item();
 
     int stackSize();
 
@@ -164,11 +135,15 @@ public interface IItemStack extends ICapabilitySerializable<CompoundTag>, IModul
 
     int damageMax();
 
-    @Nullable CompoundTag nbt();
+    /**
+     * @return Data components that differ from the item's defaults.
+     */
+    @NotNull
+    @Nonnull
+    DataComponentPatch components();
 
-    default boolean hasNbt() {
-        var nbt = nbt();
-        return nbt != null && !nbt.isEmpty();
+    default boolean hasComponents() {
+        return !components().isEmpty();
     }
 
     @NotNull
@@ -186,7 +161,5 @@ public interface IItemStack extends ICapabilitySerializable<CompoundTag>, IModul
     IItemStack copy();
 
     boolean isItemEqual(@NotNull @Nonnull IItemStack other);
-
-    void writeToNBT(@NotNull @Nonnull CompoundTag nbt);
 
 }

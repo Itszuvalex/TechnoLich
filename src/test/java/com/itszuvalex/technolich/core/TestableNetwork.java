@@ -1,7 +1,7 @@
 package com.itszuvalex.technolich.core;
 
 import com.itszuvalex.technolich.api.adapters.IModule;
-import net.minecraftforge.fml.LogicalSide;
+import net.neoforged.fml.LogicalSide;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;

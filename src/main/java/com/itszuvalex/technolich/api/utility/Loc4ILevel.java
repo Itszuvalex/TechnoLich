@@ -4,8 +4,7 @@ import com.itszuvalex.technolich.api.adapters.IBlockEntity;
 import com.itszuvalex.technolich.api.adapters.ILevel;
 import com.itszuvalex.technolich.api.wrappers.WrapperBlockEntity;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
@@ -28,7 +27,7 @@ public class Loc4ILevel extends Loc4 {
     }
 
     @Override
-    public @NotNull ResourceLocation dimensionId() {
+    public @NotNull Identifier dimensionId() {
         return level.dimensionLocation();
     }
 
@@ -56,10 +55,5 @@ public class Loc4ILevel extends Loc4 {
         if (force || level.isLoaded(getPos()))
             return Optional.ofNullable(level.getIBlockEntity(getPos())).map(IBlockEntity::toMinecraft);
         return Optional.empty();
-    }
-
-    @Override
-    public void deserializeNBT(CompoundTag nbt) {
-
     }
 }

@@ -4,7 +4,7 @@ import com.itszuvalex.technolich.api.adapters.IBlockEntity;
 import com.itszuvalex.technolich.api.adapters.ILevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
@@ -37,8 +37,8 @@ public class WrapperLevel implements ILevel {
     }
 
     @Override
-    public ResourceLocation dimensionLocation() {
-        return dimension().location();
+    public Identifier dimensionLocation() {
+        return dimension().identifier();
     }
 
     @Override

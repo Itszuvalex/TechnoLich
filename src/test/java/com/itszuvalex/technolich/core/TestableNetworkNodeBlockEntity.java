@@ -10,11 +10,11 @@ import com.itszuvalex.technolich.api.utility.ModuleCapabilityHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.util.LazyOptional;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
+import java.util.Optional;
 
 public class TestableNetworkNodeBlockEntity implements IBlockEntity {
     private final @NotNull
@@ -45,7 +45,7 @@ public class TestableNetworkNodeBlockEntity implements IBlockEntity {
     }
 
     @Override
-    public @NotNull <T> LazyOptional<T> getModule(@NotNull IModule<T> module, @Nullable Direction side) {
+    public @NotNull <T> Optional<T> getModule(@NotNull IModule<T> module, @Nullable Direction side) {
         return moduleCapabilityMap.getModule(module, side);
     }
 }

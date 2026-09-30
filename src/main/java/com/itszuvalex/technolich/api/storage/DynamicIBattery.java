@@ -1,7 +1,8 @@
 package com.itszuvalex.technolich.api.storage;
 
 import com.itszuvalex.technolich.api.adapters.IBattery;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -45,17 +46,12 @@ public class DynamicIBattery implements IBattery {
     }
 
     @Override
-    public void writeToNbt(CompoundTag tag) {
-        batterySupplier.get().writeToNbt(tag);
+    public void serialize(ValueOutput output) {
+        batterySupplier.get().serialize(output);
     }
 
     @Override
-    public CompoundTag serializeNBT() {
-        return batterySupplier.get().serializeNBT();
-    }
-
-    @Override
-    public void deserializeNBT(CompoundTag nbt) {
-        batterySupplier.get().deserializeNBT(nbt);
+    public void deserialize(ValueInput input) {
+        batterySupplier.get().deserialize(input);
     }
 }

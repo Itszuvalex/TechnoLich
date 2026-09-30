@@ -4,6 +4,10 @@ import com.itszuvalex.technolich.MCAssert;
 import com.itszuvalex.technolich.TestableIItemStack;
 import com.itszuvalex.technolich.api.adapters.IItemStack;
 import com.itszuvalex.technolich.api.utility.MCConstants;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.storage.TagValueInput;
+import net.minecraft.world.level.storage.TagValueOutput;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -15,12 +19,12 @@ public abstract class ItemStorageTestBase {
 
     @BeforeAll
     public static void ClassSetup() {
-        TestableIItemStack.overrideNBTSerializer();
+        TestableIItemStack.overrideCodec();
     }
 
     @AfterAll
     public static void ClassTeardown() {
-        TestableIItemStack.resetNBTSerializer();
+        TestableIItemStack.resetCodec();
     }
 
     public abstract IItemStorage storageWithSize(int size);
@@ -383,9 +387,11 @@ public abstract class ItemStorageTestBase {
         // Arrange
         var storage2 = new ItemStorageArray(state.testLength());
         IntStream.range(0, storage2.size()).mapToObj(storage2::get).forEach(MCAssert::assertIItemStackEmpty);
-        var nbt = state.storage().serializeNBT();
+        var output = TagValueOutput.createWithoutContext(ProblemReporter.DISCARDING);
+        state.storage().serialize(output);
+        var nbt = output.buildResult();
         // Act
-        storage2.deserializeNBT(nbt);
+        storage2.deserialize(TagValueInput.create(ProblemReporter.DISCARDING, RegistryAccess.EMPTY, nbt));
         IntStream.range(0, state.storage().size()).forEach((i) -> {
             Assertions.assertEquals(
                     state.storage().get(i).isEmpty(),

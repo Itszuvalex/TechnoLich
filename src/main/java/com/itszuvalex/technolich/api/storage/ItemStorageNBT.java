@@ -1,22 +1,45 @@
 package com.itszuvalex.technolich.api.storage;
 
 import com.itszuvalex.technolich.api.adapters.IItemStack;
+import com.mojang.serialization.DynamicOps;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 
+/**
+ * Item storage backed by a live CompoundTag, one entry per slot.
+ */
 public class ItemStorageNBT implements IItemStorage {
     private @NotNull @Nonnull final CompoundTag nbt;
     private final int size;
+    private @NotNull @Nonnull final DynamicOps<Tag> ops;
+
+    /**
+     * Without registry context, items with datapack-registry components (e.g. enchantments) will fail to encode.
+     */
     public ItemStorageNBT(@NotNull @Nonnull CompoundTag nbt, int size) {
+        this(nbt, size, NbtOps.INSTANCE);
+    }
+
+    public ItemStorageNBT(@NotNull @Nonnull CompoundTag nbt, int size, @NotNull @Nonnull HolderLookup.Provider registries) {
+        this(nbt, size, registries.createSerializationContext(NbtOps.INSTANCE));
+    }
+
+    private ItemStorageNBT(@NotNull @Nonnull CompoundTag nbt, int size, @NotNull @Nonnull DynamicOps<Tag> ops) {
         this.nbt = nbt;
         this.size = size;
+        this.ops = ops;
     }
 
     @Override
     public @NotNull IItemStack get(int index) {
-        return IItemStack.of(nbt.getCompound(String.valueOf(index)));
+        var tag = nbt.get(String.valueOf(index));
+        if (tag == null) return IItemStack.Empty;
+        return IItemStack.codec().parse(ops, tag).result().orElse(IItemStack.Empty);
     }
 
     @Override
@@ -26,6 +49,10 @@ public class ItemStorageNBT implements IItemStorage {
 
     @Override
     public void setSlot(int index, @NotNull IItemStack stack) {
-        nbt.put(String.valueOf(index), stack.serializeNBT());
+        if (stack.isEmpty()) {
+            nbt.remove(String.valueOf(index));
+            return;
+        }
+        nbt.put(String.valueOf(index), IItemStack.codec().encodeStart(ops, stack).getOrThrow());
     }
 }

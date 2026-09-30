@@ -1,9 +1,9 @@
 package com.itszuvalex.technolich.api.utility;
 
 import com.google.common.math.LongMath;
-import com.mojang.math.Vector3f;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Vector3f;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
@@ -13,7 +13,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class LocationTracker {
-    private final HashMap<ResourceLocation, HashMap<ChunkCoord, HashSet<Loc4>>> trackerMap;
+    private final HashMap<Identifier, HashMap<ChunkCoord, HashSet<Loc4>>> trackerMap;
 
     public LocationTracker() {
         trackerMap = new HashMap<>();
@@ -56,7 +56,7 @@ public class LocationTracker {
 
     public @NotNull
     @Nonnull
-    Stream<Loc4> getTrackedLocationsInDim(@Nonnull @NotNull ResourceLocation dim) {
+    Stream<Loc4> getTrackedLocationsInDim(@Nonnull @NotNull Identifier dim) {
         return FunctionalHelpers.getOptional(trackerMap, dim)
                 .map(HashMap::values)
                 .map(Collection::stream)
@@ -66,7 +66,7 @@ public class LocationTracker {
 
     public @NotNull
     @Nonnull
-    Stream<Loc4> getTrackedLocationsInChunk(@Nonnull @NotNull ResourceLocation dim, @Nonnull @NotNull ChunkCoord coords) {
+    Stream<Loc4> getTrackedLocationsInChunk(@Nonnull @NotNull Identifier dim, @Nonnull @NotNull ChunkCoord coords) {
         return FunctionalHelpers.getOptional(trackerMap, dim)
                 .flatMap((i) -> FunctionalHelpers.getOptional(i, coords))
                 .stream()
@@ -86,11 +86,11 @@ public class LocationTracker {
         trackerMap.clear();
     }
 
-    public void clearDim(@Nonnull @NotNull ResourceLocation dim) {
+    public void clearDim(@Nonnull @NotNull Identifier dim) {
         FunctionalHelpers.getOptional(trackerMap, dim).ifPresent(HashMap::clear);
     }
 
-    public void clearChunk(@Nonnull @NotNull ResourceLocation dim, @NotNull @Nonnull ChunkCoord coord) {
+    public void clearChunk(@Nonnull @NotNull Identifier dim, @NotNull @Nonnull ChunkCoord coord) {
         FunctionalHelpers.getOptional(trackerMap, dim)
                 .flatMap((i) -> FunctionalHelpers.getOptional(i, coord))
                 .ifPresent(HashSet::clear);
@@ -129,7 +129,7 @@ public class LocationTracker {
 
     public @NotNull
     @Nonnull
-    Stream<Loc4> getLocationsInRange(@NotNull @Nonnull ResourceLocation dim,
+    Stream<Loc4> getLocationsInRange(@NotNull @Nonnull Identifier dim,
                                      Vector3f loc, float range) {
         var chunkCoords = new ChunkCoord(((int) loc.x()) >> 4, ((int) loc.z()) >> 4);
         int radius = (int) Math.ceil(range / MCConstants.CHUNK_SIZE);
@@ -166,7 +166,7 @@ public class LocationTracker {
 
     @Nonnull
     @NotNull
-    Stream<Loc4> getLocationsInChunk(@Nonnull @NotNull ResourceLocation dim, @NotNull @Nonnull ChunkCoord chunkLoc) {
+    Stream<Loc4> getLocationsInChunk(@Nonnull @NotNull Identifier dim, @NotNull @Nonnull ChunkCoord chunkLoc) {
         return FunctionalHelpers.getOptional(trackerMap, dim)
                 .map((i) -> i.get(chunkLoc))
                 .stream()
@@ -187,7 +187,7 @@ public class LocationTracker {
     @Nonnull
     Stream<ChunkCoord> getChunkCoordsInRadiusInDim(@NotNull @Nonnull ChunkCoord loc,
                                                    int radius,
-                                                   @NotNull @Nonnull ResourceLocation dim) {
+                                                   @NotNull @Nonnull Identifier dim) {
         return FunctionalHelpers.getOptional(trackerMap, dim)
                 .map(HashMap::keySet).stream().flatMap(Collection::stream)
                 .filter((floc) -> floc.inRangeOf(loc, radius));

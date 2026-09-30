@@ -2,6 +2,8 @@ package com.itszuvalex.technolich.api.storage;
 
 import com.itszuvalex.technolich.api.adapters.IBattery;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -23,7 +25,7 @@ public class PowerBatteryNBT implements IBattery {
 
     @Override
     public double storage() {
-        return nbt.getDouble(POWER_KEY);
+        return nbt.getDoubleOr(POWER_KEY, 0);
     }
 
     @Override
@@ -33,7 +35,7 @@ public class PowerBatteryNBT implements IBattery {
 
     @Override
     public double maxStorage() {
-        return nbt.getDouble(POWER_MAX_KEY);
+        return nbt.getDoubleOr(POWER_MAX_KEY, 0);
     }
 
     public void setMaxStorage(double max) {
@@ -41,21 +43,14 @@ public class PowerBatteryNBT implements IBattery {
     }
 
     @Override
-    public void writeToNbt(CompoundTag tag) {
-        tag.putDouble(POWER_KEY, storage());
-        tag.putDouble(POWER_MAX_KEY, maxStorage());
+    public void serialize(ValueOutput output) {
+        output.putDouble(POWER_KEY, storage());
+        output.putDouble(POWER_MAX_KEY, maxStorage());
     }
 
     @Override
-    public CompoundTag serializeNBT() {
-        var ret = new CompoundTag();
-        writeToNbt(ret);
-        return ret;
-    }
-
-    @Override
-    public void deserializeNBT(CompoundTag nbt) {
-        setStorage(nbt.getDouble(POWER_KEY));
-        setMaxStorage(nbt.getDouble(POWER_MAX_KEY));
+    public void deserialize(ValueInput input) {
+        setStorage(input.getDoubleOr(POWER_KEY, 0));
+        setMaxStorage(input.getDoubleOr(POWER_MAX_KEY, 0));
     }
 }

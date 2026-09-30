@@ -6,17 +6,19 @@ import com.itszuvalex.technolich.api.adapters.IModule;
 import com.itszuvalex.technolich.api.utility.*;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.capabilities.BlockCapability;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.Optional;
+import java.util.function.Function;
 
-public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, IBlockEntityBlockEventHandler, ScopedCompoundTagSerialization, IModuleCapabilityMap, IBlockEntityTickable {
+public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, IBlockEntityBlockEventHandler, IScopedSerialization, IModuleCapabilityMap, IBlockEntityTickable {
     private final @NotNull
     @Nonnull
     IMutableModuleCapabilityMap modCapMap;
@@ -43,8 +45,15 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
 
     public <F> void addFragment(@NotNull @Nonnull IBlockEntityFragment<F> fragment) {
         addInternalFragment(fragment);
-        var getter = fragment.faceToModuleSupplierMapper(blockEntity);
+        var getter = fragment.faceToModuleMapper(blockEntity);
         modCapMap.addModule(fragment.module(), getter);
+    }
+
+    /**
+     * Exposes a capability that is not tied to a module, e.g. one of {@link com.itszuvalex.technolich.api.ModuleCapabilities#STANDARD}.
+     */
+    public <T> void addCapability(@NotNull @Nonnull BlockCapability<T, Direction> cap, @NotNull @Nonnull Function<Direction, T> provider) {
+        modCapMap.addCapability(cap, provider);
     }
 
     public void addTickable(@NotNull @Nonnull IBlockEntityTickable tickable) {
@@ -57,17 +66,17 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
     }
 
     @Override
-    public void serializeTo(NBTSerializationScope scope, @NotNull CompoundTag tag) {
+    public void serializeTo(NBTSerializationScope scope, @NotNull ValueOutput output) {
         modList.stream()
                 .filter((i) -> i.handlesScope(scope))
-                .forEach((i) -> tag.put(i.name(), i.serialize(scope)));
+                .forEach((i) -> i.serializeTo(scope, output.child(i.name())));
     }
 
     @Override
-    public void deserialize(@NotNull CompoundTag nbt, NBTSerializationScope scope) {
+    public void deserialize(@NotNull ValueInput input, NBTSerializationScope scope) {
         modList.stream()
-                .filter((i) -> i.handlesScope(scope) && nbt.contains(i.name()))
-                .forEach((i) -> i.deserialize(nbt.getCompound(i.name()), scope));
+                .filter((i) -> i.handlesScope(scope))
+                .forEach((i) -> input.child(i.name()).ifPresent((child) -> i.deserialize(child, scope)));
     }
 
     @Override
@@ -76,13 +85,12 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
     }
 
     @Override
-    public @NotNull <T> LazyOptional<T> getModule(@NotNull IModule<T> module, @Nullable Direction side) {
+    public @NotNull <T> Optional<T> getModule(@NotNull IModule<T> module, @Nullable Direction side) {
         return modCapMap.getModule(module, side);
     }
 
-    @NotNull
     @Override
-    public <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
+    public <T> @Nullable T getCapability(@NotNull BlockCapability<T, Direction> cap, @Nullable Direction side) {
         return modCapMap.getCapability(cap, side);
     }
 

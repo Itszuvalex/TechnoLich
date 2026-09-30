@@ -3,26 +3,34 @@ package com.itszuvalex.technolich.core;
 import com.itszuvalex.technolich.api.adapters.IBlockEntity;
 import com.itszuvalex.technolich.api.adapters.ILevel;
 import com.itszuvalex.technolich.api.adapters.IModule;
+import com.itszuvalex.technolich.api.utility.IScopedSerialization;
 import com.itszuvalex.technolich.api.utility.NBTSerializationScope;
-import com.itszuvalex.technolich.api.utility.ScopedCompoundTagSerialization;
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
+import net.minecraft.world.level.storage.TagValueOutput;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.capabilities.BlockCapability;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import javax.annotation.Nonnull;
+import java.util.Optional;
 
-public class BlockEntityCore extends BlockEntity implements IBlockEntity, IBlockEntityBlockEventHandler, ScopedCompoundTagSerialization {
+public class BlockEntityCore extends BlockEntity implements IBlockEntity, IBlockEntityBlockEventHandler, IScopedSerialization {
+    private static final Logger LOGGER = LogUtils.getLogger();
     public static final String FRAG_KEY = "frags";
 
     protected final @NotNull
@@ -40,40 +48,39 @@ public class BlockEntityCore extends BlockEntity implements IBlockEntity, IBlock
     }
 
     @Override
-    public @NotNull <T> LazyOptional<T> getModule(@NotNull IModule<T> module, @Nullable Direction side) {
+    public @NotNull <T> Optional<T> getModule(@NotNull IModule<T> module, @Nullable Direction side) {
         return fragList.getModule(module, side);
     }
 
-    @NotNull
-    @Override
-    public <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
-        var ret = super.getCapability(cap, side);
-        if (ret.isPresent()) return ret;
+    /**
+     * Capability provider target.  Register with {@link com.itszuvalex.technolich.api.ModuleCapabilities}.
+     */
+    public <T> @Nullable T getCapability(@NotNull @Nonnull BlockCapability<T, Direction> cap, @Nullable Direction side) {
         return fragList.getCapability(cap, side);
     }
 
     @Override
-    public @NotNull CompoundTag save(@NotNull CompoundTag tag) {
-        var ret = super.save(tag);
-        serializeTo(NBTSerializationScope.LEVEL, ret);
-        return ret;
+    protected void saveAdditional(@NotNull ValueOutput output) {
+        super.saveAdditional(output);
+        serializeTo(NBTSerializationScope.LEVEL, output);
     }
 
     @Override
-    public void load(@NotNull CompoundTag tag) {
-        super.load(tag);
-        deserialize(tag, NBTSerializationScope.LEVEL);
+    protected void loadAdditional(@NotNull ValueInput input) {
+        super.loadAdditional(input);
+        deserialize(input, NBTSerializationScope.LEVEL);
     }
 
     @Override
-    public void serializeTo(NBTSerializationScope scope, @NotNull CompoundTag tag) {
-        tag.put(FRAG_KEY, fragList.serialize(scope));
+    public void serializeTo(NBTSerializationScope scope, @NotNull ValueOutput output) {
+        fragList.serializeTo(scope, output.child(FRAG_KEY));
     }
 
     @Override
-    public void deserialize(@NotNull CompoundTag nbt, NBTSerializationScope scope) {
-        if (nbt.contains(FRAG_KEY))
-            fragList.deserialize(nbt.getCompound(FRAG_KEY), scope);
+    public void deserialize(@NotNull ValueInput input, NBTSerializationScope scope) {
+        input.child(FRAG_KEY).ifPresent((frags) -> fragList.deserialize(frags, scope));
+        // Fragments may have replaced the objects they expose.
+        if (level != null) invalidateCapabilities();
     }
 
     @Override
@@ -82,15 +89,15 @@ public class BlockEntityCore extends BlockEntity implements IBlockEntity, IBlock
     }
 
     @Override
-    public void reviveCaps() {
-        super.reviveCaps();
+    public void clearRemoved() {
         fragList.rehydrateFrags();
+        super.clearRemoved();
     }
 
     @Override
-    public void invalidateCaps() {
-        super.invalidateCaps();
+    public void setRemoved() {
         fragList.invalidateFrags();
+        super.setRemoved();
     }
 
     @Nullable
@@ -98,27 +105,34 @@ public class BlockEntityCore extends BlockEntity implements IBlockEntity, IBlock
     public Packet<ClientGamePacketListener> getUpdatePacket() {
         if (!handlesScope(NBTSerializationScope.DESCRIPTION)) return null;
 
-        //Write your data into the tag
         return ClientboundBlockEntityDataPacket.create(this);
     }
 
     @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
+    public void onDataPacket(@NotNull Connection net, @NotNull ValueInput input) {
         if (!handlesScope(NBTSerializationScope.DESCRIPTION)) return;
-        CompoundTag tag = pkt.getTag();
-        if (tag == null) return;
 
-        deserialize(tag, NBTSerializationScope.DESCRIPTION);
+        deserialize(input, NBTSerializationScope.DESCRIPTION);
     }
 
     @Override
-    public void handleUpdateTag(CompoundTag tag) {
-        deserialize(tag, NBTSerializationScope.DESCRIPTION);
+    public void handleUpdateTag(@NotNull ValueInput input) {
+        deserialize(input, NBTSerializationScope.DESCRIPTION);
     }
 
     @Override
-    public @NotNull CompoundTag getUpdateTag() {
-        return serialize(NBTSerializationScope.DESCRIPTION);
+    public @NotNull CompoundTag getUpdateTag(@NotNull HolderLookup.Provider registries) {
+        try (var reporter = new ProblemReporter.ScopedCollector(problemPath(), LOGGER)) {
+            var output = TagValueOutput.createWithContext(reporter, registries);
+            serializeTo(NBTSerializationScope.DESCRIPTION, output);
+            return output.buildResult();
+        }
+    }
+
+    @Override
+    public void preRemoveSideEffects(@NotNull BlockPos pos, @NotNull BlockState state) {
+        super.preRemoveSideEffects(pos, state);
+        if (level != null) onRemove(ILevel.of(level), pos, state);
     }
 
     @Override

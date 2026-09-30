@@ -2,23 +2,22 @@ package com.itszuvalex.technolich.api.utility;
 
 import com.itszuvalex.technolich.api.adapters.IBlockEntity;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
 
 public class Loc4Indirect extends Loc4 {
-    private final ResourceLocation worldId;
+    private final Identifier worldId;
 
-    public Loc4Indirect(ResourceLocation worldId, BlockPos pos) {
+    public Loc4Indirect(Identifier worldId, BlockPos pos) {
         this.worldId = worldId;
         this.pos = pos;
     }
 
     @Override
-    public @NotNull ResourceLocation dimensionId() {
+    public @NotNull Identifier dimensionId() {
         return worldId;
     }
 
@@ -42,10 +41,5 @@ public class Loc4Indirect extends Loc4 {
     @Override
     public @NotNull Optional<BlockEntity> getBlockEntity(boolean force) {
         return Optional.empty();
-    }
-
-    @Override
-    public void deserializeNBT(CompoundTag nbt) {
-
     }
 }

@@ -4,7 +4,7 @@ import com.itszuvalex.technolich.api.adapters.IBlockEntity;
 import com.itszuvalex.technolich.api.adapters.ILevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
@@ -17,9 +17,9 @@ public class TestableLevel implements ILevel {
     @Nonnull
     HashMap<BlockPos, IBlockEntity> blockEntityMap = new HashMap<>();
 
-    private final @Nonnull @NotNull ResourceLocation dimension;
+    private final @Nonnull @NotNull Identifier dimension;
 
-    public TestableLevel(ResourceLocation dim) {
+    public TestableLevel(Identifier dim) {
         this.dimension = dim;
     }
 
@@ -35,7 +35,7 @@ public class TestableLevel implements ILevel {
     }
 
     @Override
-    public ResourceLocation dimensionLocation() {
+    public Identifier dimensionLocation() {
         return dimension;
     }
 

@@ -8,6 +8,7 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
+import java.util.stream.IntStream;
 
 //TODO Make sure this is correct
 public class WrapperContainerIItemStorage implements Container {
@@ -57,11 +58,17 @@ public class WrapperContainerIItemStorage implements Container {
     }
 
     @Override
+    public boolean canPlaceItem(int slot, @NotNull ItemStack stack) {
+        return storage.canInsert(slot, IItemStack.of(stack));
+    }
+
+    @Override
     public boolean stillValid(Player p_18946_) {
         return false;
     }
 
     @Override
     public void clearContent() {
+        IntStream.range(0, storage.size()).forEach((i) -> storage.setSlot(i, IItemStack.Empty));
     }
 }

@@ -3,15 +3,16 @@ package com.itszuvalex.technolich.api.storage;
 import com.itszuvalex.technolich.api.adapters.IItemStack;
 import com.itszuvalex.technolich.api.utility.BoxCounter;
 import com.itszuvalex.technolich.api.utility.MCConstants;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraftforge.common.util.INBTSerializable;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import java.util.stream.IntStream;
 
 
-public interface IItemStorage extends INBTSerializable<CompoundTag> {
+public interface IItemStorage extends ValueIOSerializable {
     IItemStorage Empty = new IItemStorage() {
         @Override
         public @NotNull IItemStack get(int index) {
@@ -147,27 +148,15 @@ public interface IItemStorage extends INBTSerializable<CompoundTag> {
     }
 
     @Override
-    default void deserializeNBT(@NotNull @Nonnull CompoundTag nbt) {
-        IntStream.range(0, size()).filter((i) -> nbt.contains(String.valueOf(i))).forEach((i) -> setSlot(i,
-                readItemFromSlot(nbt, i)));
+    default void deserialize(@NotNull @Nonnull ValueInput input) {
+        IntStream.range(0, size()).forEach((i) ->
+                input.read(String.valueOf(i), IItemStack.codec()).ifPresent((stack) -> setSlot(i, stack)));
     }
 
     @Override
-    default @NotNull
-    @Nonnull
-    CompoundTag serializeNBT() {
-        var ret = new CompoundTag();
+    default void serialize(@NotNull @Nonnull ValueOutput output) {
         IntStream.range(0, size()).filter((i) -> !get(i).isEmpty()).forEach((i) ->
-                writeItemToNBT(ret, get(i), i));
-        return ret;
-    }
-
-    default void writeItemToNBT(@NotNull @Nonnull CompoundTag nbt, @NotNull @Nonnull IItemStack item, int slot) {
-        nbt.put(String.valueOf(slot), item.serializeNBT());
-    }
-
-    default IItemStack readItemFromSlot(@NotNull @Nonnull CompoundTag nbt, int slot) {
-        return IItemStack.of(nbt.getCompound(String.valueOf(slot)));
+                output.store(String.valueOf(i), IItemStack.codec(), get(i)));
     }
 
     default boolean isEmpty() {

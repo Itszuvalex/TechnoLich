@@ -1,9 +1,9 @@
 package com.itszuvalex.technolich.api.utility;
 
 import com.itszuvalex.technolich.TestableLoc4;
-import com.mojang.math.Vector3f;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import org.joml.Vector3f;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -80,7 +80,7 @@ class LocationTrackerTest {
         var tracker = new LocationTracker();
         var loc = TestableLoc4.ORIGIN;
         var loc1 = new Loc4Indirect(TestableLoc4.DEFAULT_DIM, new BlockPos(0, 0, 1));
-        var loc2 = new Loc4Indirect(new ResourceLocation("stay"), new BlockPos(0, 0, 1));
+        var loc2 = new Loc4Indirect(Identifier.parse("stay"), new BlockPos(0, 0, 1));
         Assertions.assertFalse(tracker.isLocationTracked(loc));
         Assertions.assertFalse(tracker.isLocationTracked(loc1));
         Assertions.assertFalse(tracker.isLocationTracked(loc2));
@@ -104,7 +104,7 @@ class LocationTrackerTest {
         var tracker = new LocationTracker();
         var loc = TestableLoc4.ORIGIN;
         var loc1 = new Loc4Indirect(TestableLoc4.DEFAULT_DIM, new BlockPos(0, 0, 1));
-        var loc2 = new Loc4Indirect(new ResourceLocation("stay"), new BlockPos(0, 0, 1));
+        var loc2 = new Loc4Indirect(Identifier.parse("stay"), new BlockPos(0, 0, 1));
         Assertions.assertFalse(tracker.isLocationTracked(loc));
         Assertions.assertFalse(tracker.isLocationTracked(loc1));
         Assertions.assertFalse(tracker.isLocationTracked(loc2));
@@ -118,7 +118,7 @@ class LocationTrackerTest {
         Assertions.assertTrue(tracker.getTrackedLocationsInDim(TestableLoc4.DEFAULT_DIM)
                 .allMatch((i) ->
                         (i.equals(loc) || i.equals(loc1)) && (!i.equals(loc2))));
-        Assertions.assertTrue(tracker.getTrackedLocationsInDim(new ResourceLocation("stay"))
+        Assertions.assertTrue(tracker.getTrackedLocationsInDim(Identifier.parse("stay"))
                 .allMatch((i) ->
                         !(i.equals(loc) || i.equals(loc1)) && (i.equals(loc2))));
     }
@@ -158,7 +158,7 @@ class LocationTrackerTest {
         // Arrange
         var tracker = new LocationTracker();
         var loc = TestableLoc4.ORIGIN;
-        var loc1 = new Loc4Indirect(new ResourceLocation("test"), new BlockPos(0, 0, 3000000));
+        var loc1 = new Loc4Indirect(Identifier.parse("test"), new BlockPos(0, 0, 3000000));
         Assertions.assertFalse(tracker.isLocationTracked(loc));
         Assertions.assertFalse(tracker.isLocationTracked(loc1));
         tracker.trackLocation(loc);
@@ -200,7 +200,7 @@ class LocationTrackerTest {
         // Arrange
         var tracker = new LocationTracker();
         var loc = TestableLoc4.ORIGIN;
-        var loc1 = new Loc4Indirect(new ResourceLocation("test"), new BlockPos(0, 0, 3000000));
+        var loc1 = new Loc4Indirect(Identifier.parse("test"), new BlockPos(0, 0, 3000000));
         Assertions.assertFalse(tracker.isLocationTracked(loc));
         Assertions.assertFalse(tracker.isLocationTracked(loc1));
         tracker.trackLocation(loc);

@@ -2,55 +2,51 @@ package com.itszuvalex.technolich.api.utility;
 
 import com.itszuvalex.technolich.api.adapters.IModule;
 import net.minecraft.core.Direction;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
+import net.neoforged.neoforge.capabilities.BlockCapability;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class ModuleCapabilityHashMap implements IMutableModuleCapabilityMap {
     private boolean valid = true;
     private final @Nonnull
-    @NotNull HashMap<IModule<?>, Object> modMap = new HashMap<>();
+    @NotNull HashMap<IModule<?>, Function<Direction, ?>> modMap = new HashMap<>();
     private final @Nonnull
-    @NotNull HashMap<Capability<?>, Object> capMap = new HashMap<>();
+    @NotNull HashMap<BlockCapability<?, Direction>, Function<Direction, ?>> capMap = new HashMap<>();
 
     @Override
     public <T> void addModule(@NotNull @Nonnull IModule<T> module,
-                              @NotNull @Nonnull Function<Direction, Supplier<LazyOptional<T>>> provider) {
+                              @NotNull @Nonnull Function<Direction, T> provider) {
         modMap.put(module, provider);
-        module.capability().ifPresent((c) -> capMap.put(c, provider));
+        module.blockCapability().ifPresent((c) -> capMap.put(c, provider));
     }
 
     @Override
-    public <T> void addCapability(@NotNull @Nonnull Capability<T> cap, @NotNull @Nonnull Function<Direction,
-            Supplier<LazyOptional<T>>> provider) {
+    public <T> void addCapability(@NotNull @Nonnull BlockCapability<T, Direction> cap,
+                                  @NotNull @Nonnull Function<Direction, T> provider) {
         capMap.put(cap, provider);
     }
 
     @Override
-    public @NotNull <T> LazyOptional<T> getModule(@NotNull IModule<T> module, @Nullable Direction side) {
-        if(!valid) return LazyOptional.empty();
+    public @NotNull <T> Optional<T> getModule(@NotNull IModule<T> module, @Nullable Direction side) {
+        if (!valid) return Optional.empty();
 
-        var funcObj = modMap.get(module);
-        if (funcObj == null) return LazyOptional.empty();
-        var func = (Function<Direction, Supplier<LazyOptional<T>>>) funcObj;
-        return func.apply(side).get().cast();
+        var func = (Function<Direction, T>) modMap.get(module);
+        if (func == null) return Optional.empty();
+        return Optional.ofNullable(func.apply(side));
     }
 
-    @NotNull
     @Override
-    public <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
-        if(!valid) return LazyOptional.empty();
+    public <T> @Nullable T getCapability(@NotNull BlockCapability<T, Direction> cap, @Nullable Direction side) {
+        if (!valid) return null;
 
-        var funcObj = capMap.get(cap);
-        if (funcObj == null) return LazyOptional.empty();
-        var func = (Function<Direction, Supplier<LazyOptional<T>>>) funcObj;
-        return func.apply(side).get().cast();
+        var func = (Function<Direction, T>) capMap.get(cap);
+        if (func == null) return null;
+        return func.apply(side);
     }
 
     @Override

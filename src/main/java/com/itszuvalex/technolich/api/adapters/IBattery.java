@@ -1,9 +1,10 @@
 package com.itszuvalex.technolich.api.adapters;
 
-import net.minecraft.nbt.CompoundTag;
-import net.minecraftforge.common.util.INBTSerializable;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 
-public interface IBattery extends INBTSerializable<CompoundTag> {
+public interface IBattery extends ValueIOSerializable {
     IBattery Empty = new IBattery() {
         @Override public double storage() {return 0;}
 
@@ -11,11 +12,9 @@ public interface IBattery extends INBTSerializable<CompoundTag> {
 
         @Override public double maxStorage() {return 0;}
 
-        @Override public void writeToNbt(CompoundTag tag) {}
+        @Override public void serialize(ValueOutput output) {}
 
-        @Override public CompoundTag serializeNBT() {return new CompoundTag();}
-
-        @Override public void deserializeNBT(CompoundTag nbt) {}
+        @Override public void deserialize(ValueInput input) {}
     };
 
     double storage();
@@ -39,6 +38,4 @@ public interface IBattery extends INBTSerializable<CompoundTag> {
         setStorage(storage() - toDrain);
         return toDrain;
     }
-
-    void writeToNbt(CompoundTag tag);
 }

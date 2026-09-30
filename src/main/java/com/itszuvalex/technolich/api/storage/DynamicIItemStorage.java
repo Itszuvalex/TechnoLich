@@ -1,7 +1,8 @@
 package com.itszuvalex.technolich.api.storage;
 
 import com.itszuvalex.technolich.api.adapters.IItemStack;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -65,22 +66,12 @@ public class DynamicIItemStorage implements IItemStorage {
     }
 
     @Override
-    public void deserializeNBT(@NotNull CompoundTag nbt) {
-        itemStorageSupplier.get().deserializeNBT(nbt);
+    public void deserialize(@NotNull ValueInput input) {
+        itemStorageSupplier.get().deserialize(input);
     }
 
     @Override
-    public @NotNull CompoundTag serializeNBT() {
-        return itemStorageSupplier.get().serializeNBT();
-    }
-
-    @Override
-    public void writeItemToNBT(@NotNull CompoundTag nbt, @NotNull IItemStack item, int slot) {
-        itemStorageSupplier.get().writeItemToNBT(nbt, item, slot);
-    }
-
-    @Override
-    public IItemStack readItemFromSlot(@NotNull CompoundTag nbt, int slot) {
-        return itemStorageSupplier.get().readItemFromSlot(nbt, slot);
+    public void serialize(@NotNull ValueOutput output) {
+        itemStorageSupplier.get().serialize(output);
     }
 }

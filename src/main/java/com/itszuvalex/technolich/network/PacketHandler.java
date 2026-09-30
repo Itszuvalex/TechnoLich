@@ -1,16 +1,16 @@
 package com.itszuvalex.technolich.network;
 
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.simple.SimpleChannel;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
+/**
+ * Registers network payloads.  Construct from a {@link RegisterPayloadHandlersEvent} listener on the mod bus,
+ * then register payloads with {@link #registrar}.
+ */
 public class PacketHandler {
-    public SimpleChannel CHANNEL;
+    public final PayloadRegistrar registrar;
 
-    public PacketHandler(String name, String type, String version) {
-        CHANNEL = NetworkRegistry.newSimpleChannel(new ResourceLocation(name, type),
-                () -> version,
-                version::equals,
-                version::equals);
+    public PacketHandler(RegisterPayloadHandlersEvent event, String version) {
+        registrar = event.registrar(version);
     }
 }

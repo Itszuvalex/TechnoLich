@@ -2,7 +2,7 @@ package com.itszuvalex.technolich.api.utility;
 
 import com.itszuvalex.technolich.api.adapters.ILevel;
 import net.minecraft.world.level.Level;
-import net.minecraftforge.fml.LogicalSide;
+import net.neoforged.fml.LogicalSide;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;

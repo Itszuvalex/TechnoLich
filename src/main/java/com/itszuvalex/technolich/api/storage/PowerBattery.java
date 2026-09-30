@@ -1,7 +1,8 @@
 package com.itszuvalex.technolich.api.storage;
 
 import com.itszuvalex.technolich.api.adapters.IBattery;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 
 public class PowerBattery implements IBattery {
     private static String POWER_KEY = "P";
@@ -30,19 +31,12 @@ public class PowerBattery implements IBattery {
     }
 
     @Override
-    public void writeToNbt(CompoundTag tag) {
-        tag.putDouble(POWER_KEY, storage());
+    public void serialize(ValueOutput output) {
+        output.putDouble(POWER_KEY, storage());
     }
 
     @Override
-    public CompoundTag serializeNBT() {
-        var ret = new CompoundTag();
-        writeToNbt(ret);
-        return ret;
-    }
-
-    @Override
-    public void deserializeNBT(CompoundTag nbt) {
-        setStorage(nbt.getDouble(POWER_KEY));
+    public void deserialize(ValueInput input) {
+        setStorage(input.getDoubleOr(POWER_KEY, 0));
     }
 }

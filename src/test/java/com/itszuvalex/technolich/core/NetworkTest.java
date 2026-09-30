@@ -5,8 +5,7 @@ import com.itszuvalex.technolich.api.adapters.IModule;
 import com.itszuvalex.technolich.api.adapters.Module;
 import com.itszuvalex.technolich.api.utility.Loc4;
 import net.minecraft.core.BlockPos;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.common.util.LazyOptional;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 
@@ -16,7 +15,7 @@ import java.util.Random;
 class NetworkTest {
     static IModule<TestableNetworkNode> module;
     static INetworkManager networkManager;
-    static ResourceLocation dimension;
+    static Identifier dimension;
 
     @BeforeAll
     public static void ClassSetup() {
@@ -32,7 +31,7 @@ class NetworkTest {
 
     @BeforeEach
     public void MethodSetup() {
-        dimension = new ResourceLocation(String.valueOf(new Random().nextInt()));
+        dimension = Identifier.parse(String.valueOf(new Random().nextInt()));
     }
 
     @AfterEach
@@ -57,7 +56,7 @@ class NetworkTest {
         public TestableNetworkNode createNode(BlockPos pos) {
             TestableNetworkNodeBlockEntity e = new TestableNetworkNodeBlockEntity(pos, level);
             TestableNetworkNode node = new TestableNetworkNode(Loc4.of(level, pos));
-            e.moduleCapabilityMap.addModule(module, (dir) -> () -> LazyOptional.of(() -> node));
+            e.moduleCapabilityMap.addModule(module, (dir) -> node);
             level.setIBlockEntity(e);
             return node;
         }

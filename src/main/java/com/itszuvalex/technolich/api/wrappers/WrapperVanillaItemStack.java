@@ -3,26 +3,27 @@ package com.itszuvalex.technolich.api.wrappers;
 import com.itszuvalex.technolich.api.adapters.IItemStack;
 import com.itszuvalex.technolich.api.adapters.IModule;
 import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
+import net.neoforged.neoforge.transfer.access.ItemAccess;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
+import java.util.Optional;
 
 public class WrapperVanillaItemStack implements IItemStack {
-    private ItemStack stack;
+    private final ItemStack stack;
 
     public WrapperVanillaItemStack(@NotNull @Nonnull ItemStack stack) {
         this.stack = stack;
     }
 
     @Override
-    public ResourceLocation item() {
-        return stack.getItem().getRegistryName();
+    public Identifier item() {
+        return BuiltInRegistries.ITEM.getKey(stack.getItem());
     }
 
     @Override
@@ -56,8 +57,8 @@ public class WrapperVanillaItemStack implements IItemStack {
     }
 
     @Override
-    public @Nullable CompoundTag nbt() {
-        return stack.getShareTag();
+    public @NotNull DataComponentPatch components() {
+        return stack.getComponentsPatch();
     }
 
     @NotNull
@@ -81,35 +82,13 @@ public class WrapperVanillaItemStack implements IItemStack {
 
     @Override
     public boolean isItemEqual(@NotNull @Nonnull IItemStack other) {
-        return stack.equals(other.toMinecraft(), false);
-    }
-
-    @Override
-    public void writeToNBT(@NotNull @Nonnull CompoundTag nbt) {
-        stack.save(nbt);
+        return ItemStack.isSameItemSameComponents(stack, other.toMinecraft());
     }
 
     @NotNull
     @Nonnull
     @Override
-    public <T> LazyOptional<T> getModule(@NotNull @Nonnull IModule<T> module, @Nullable Direction side) {
-        return module.capability().map(this::getCapability).orElseGet(LazyOptional::empty);
-    }
-
-    @NotNull
-    @Nonnull
-    @Override
-    public <T> LazyOptional<T> getCapability(@NotNull @Nonnull Capability<T> cap, @Nullable Direction side) {
-        return stack.getCapability(cap, side);
-    }
-
-    @Override
-    public CompoundTag serializeNBT() {
-        return stack.serializeNBT();
-    }
-
-    @Override
-    public void deserializeNBT(CompoundTag nbt) {
-        stack = ItemStack.of(nbt);
+    public <T> Optional<T> getModule(@NotNull @Nonnull IModule<T> module, @Nullable Direction side) {
+        return module.itemCapability().map((cap) -> cap.getCapability(stack, ItemAccess.forStack(stack)));
     }
 }

@@ -2,13 +2,13 @@ package com.itszuvalex.technolich;
 
 import com.itszuvalex.technolich.api.adapters.IItemStack;
 import com.itszuvalex.technolich.api.adapters.IModule;
-import com.itszuvalex.technolich.api.utility.INBTObjectSerializer;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.Direction;
+import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.util.LazyOptional;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Assertions;
@@ -16,30 +16,29 @@ import org.junit.jupiter.api.Assertions;
 import java.util.Optional;
 
 public class TestableIItemStack implements IItemStack {
-    public static void overrideNBTSerializer() {
-        IItemStack.NBT_SERIALIZER.setOverrideValue(new INBTObjectSerializer<IItemStack, CompoundTag>() {
-            @Override
-            public void serialize(IItemStack obj, CompoundTag tag) {
-                obj.writeToNBT(tag);
-            }
-
-            @Override
-            public IItemStack deserialize(CompoundTag tag) {
-                var ret = new TestableIItemStack();
-                ret.deserializeNBT(tag);
-                return ret;
-            }
-        });
-    }
-
-    public static void resetNBTSerializer() {
-        IItemStack.NBT_SERIALIZER.revert();
-    }
-
     public static final String ITEM_KEY = "Item";
     public static final String STACK_KEY = "Stack";
     public static final String DAMAGE_KEY = "Damage";
     public static final String NBT_KEY = "NBT";
+
+    public static final Codec<IItemStack> CODEC = RecordCodecBuilder.<TestableIItemStack>create((instance) -> instance.group(
+            Codec.INT.fieldOf(ITEM_KEY).forGetter((s) -> s.testItem),
+            Codec.INT.fieldOf(STACK_KEY).forGetter((s) -> s.testStack),
+            Codec.INT.fieldOf(DAMAGE_KEY).forGetter((s) -> s.testDamage),
+            CompoundTag.CODEC.optionalFieldOf(NBT_KEY).forGetter((s) -> Optional.ofNullable(s.testNBT))
+    ).apply(instance, (item, stack, damage, nbt) -> {
+        var ret = new TestableIItemStack(item, stack, damage);
+        ret.testNBT = nbt.orElse(null);
+        return ret;
+    })).xmap((s) -> s, (s) -> s instanceof TestableIItemStack t ? t : new TestableIItemStack());
+
+    public static void overrideCodec() {
+        IItemStack.CODEC.setOverrideValue(CODEC);
+    }
+
+    public static void resetCodec() {
+        IItemStack.CODEC.revert();
+    }
 
     public int testItem;
     public int testStack;
@@ -67,8 +66,8 @@ public class TestableIItemStack implements IItemStack {
     }
 
     @Override
-    public ResourceLocation item() {
-        return new ResourceLocation(TechnoLich.NAMELOWER, String.valueOf(testItem));
+    public Identifier item() {
+        return Identifier.fromNamespaceAndPath(TechnoLich.NAMELOWER, String.valueOf(testItem));
     }
 
     @Override
@@ -102,8 +101,8 @@ public class TestableIItemStack implements IItemStack {
     }
 
     @Override
-    public @Nullable CompoundTag nbt() {
-        return testNBT;
+    public @NotNull DataComponentPatch components() {
+        return DataComponentPatch.EMPTY;
     }
 
     @Override
@@ -139,41 +138,7 @@ public class TestableIItemStack implements IItemStack {
     }
 
     @Override
-    public void writeToNBT(@NotNull CompoundTag nbt) {
-        nbt.putInt(ITEM_KEY, testItem);
-        nbt.putInt(STACK_KEY, testStack);
-        nbt.putInt(DAMAGE_KEY, testDamage);
-        if (testNBT != null)
-            nbt.put(NBT_KEY, testNBT);
-    }
-
-    @Override
-    public @NotNull <T> LazyOptional<T> getModule(@NotNull IModule<T> module, @Nullable Direction side) {
-        return LazyOptional.empty();
-    }
-
-    @NotNull
-    @Override
-    public <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable Direction side) {
-        return LazyOptional.empty();
-    }
-
-    @Override
-    public CompoundTag serializeNBT() {
-        var ret = new CompoundTag();
-        writeToNBT(ret);
-        return ret;
-    }
-
-    @Override
-    public void deserializeNBT(CompoundTag nbt) {
-        testItem = nbt.getInt(ITEM_KEY);
-        testStack = nbt.getInt(STACK_KEY);
-        testDamage = nbt.getInt(DAMAGE_KEY);
-        if (nbt.contains(NBT_KEY)) {
-            testNBT = nbt.getCompound(NBT_KEY);
-        } else {
-            testNBT = null;
-        }
+    public @NotNull <T> Optional<T> getModule(@NotNull IModule<T> module, @Nullable Direction side) {
+        return Optional.empty();
     }
 }

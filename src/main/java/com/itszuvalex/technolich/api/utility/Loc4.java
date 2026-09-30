@@ -2,26 +2,26 @@ package com.itszuvalex.technolich.api.utility;
 
 import com.itszuvalex.technolich.api.adapters.IBlockEntity;
 import com.itszuvalex.technolich.api.adapters.ILevel;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.common.util.INBTSerializable;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
 import java.util.Objects;
 import java.util.Optional;
 
-public abstract class Loc4 implements Comparable<Loc4>, INBTSerializable<CompoundTag> {
+public abstract class Loc4 implements Comparable<Loc4> {
     protected @NotNull
     @Nonnull
     BlockPos pos;
 
     public abstract @NotNull
     @Nonnull
-    ResourceLocation dimensionId();
+    Identifier dimensionId();
 
     public abstract @NotNull
     @Nonnull
@@ -113,17 +113,7 @@ public abstract class Loc4 implements Comparable<Loc4>, INBTSerializable<Compoun
         return Integer.compare(z(), o.z());
     }
 
-    @Override
-    public CompoundTag serializeNBT() {
-        var tag = new CompoundTag();
-        tag.putInt(X_KEY, x());
-        tag.putInt(Y_KEY, y());
-        tag.putInt(Z_KEY, z());
-        tag.putString(DIM_KEY, dimensionId().toString());
-        return tag;
-    }
-
-    public static Loc4 of(@NotNull @Nonnull ResourceLocation worldId, @NotNull @Nonnull BlockPos loc) {
+    public static Loc4 of(@NotNull @Nonnull Identifier worldId, @NotNull @Nonnull BlockPos loc) {
         return new Loc4Indirect(worldId, loc);
     }
 
@@ -135,20 +125,21 @@ public abstract class Loc4 implements Comparable<Loc4>, INBTSerializable<Compoun
         return new Loc4ILevel(level, loc);
     }
 
-    public static @NotNull Loc4 of(@NotNull @Nonnull CompoundTag nbt) {
-        int x = nbt.getInt(X_KEY);
-        int y = nbt.getInt(Y_KEY);
-        int z = nbt.getInt(Z_KEY);
-        String loc = nbt.getString(DIM_KEY);
-        var key = new ResourceLocation(loc);
-        return Loc4.of(key, new BlockPos(x, y, z));
-    }
-
-    public static Loc4 ORIGIN = Loc4.of(new ResourceLocation("overworld"), new BlockPos(0, 0, 0));
+    public static Loc4 ORIGIN = Loc4.of(Identifier.parse("overworld"), new BlockPos(0, 0, 0));
     public static String X_KEY = "x";
     public static String Y_KEY = "y";
     public static String Z_KEY = "z";
     public static String DIM_KEY = "dim";
+
+    /**
+     * Serializes any Loc4 by value; decodes to a {@link Loc4Indirect}.
+     */
+    public static final Codec<Loc4> CODEC = RecordCodecBuilder.create((instance) -> instance.group(
+            Codec.INT.fieldOf(X_KEY).forGetter(Loc4::x),
+            Codec.INT.fieldOf(Y_KEY).forGetter(Loc4::y),
+            Codec.INT.fieldOf(Z_KEY).forGetter(Loc4::z),
+            Identifier.CODEC.fieldOf(DIM_KEY).forGetter(Loc4::dimensionId)
+    ).apply(instance, (x, y, z, dim) -> Loc4.of(dim, new BlockPos(x, y, z))));
 
     @Override
     public boolean equals(Object o) {

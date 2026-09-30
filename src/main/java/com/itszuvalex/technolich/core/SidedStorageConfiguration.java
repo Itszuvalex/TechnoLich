@@ -2,8 +2,9 @@ package com.itszuvalex.technolich.core;
 
 import com.itszuvalex.technolich.api.utility.DirectionUtil;
 import net.minecraft.core.Direction;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraftforge.common.util.INBTSerializable;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.common.util.ValueIOSerializable;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnull;
@@ -14,7 +15,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
-public abstract class SidedStorageConfiguration<T> implements INBTSerializable<CompoundTag> {
+public abstract class SidedStorageConfiguration<T> implements ValueIOSerializable {
     private final @NotNull
     @Nonnull
     Map<String, T> storages;
@@ -96,20 +97,18 @@ public abstract class SidedStorageConfiguration<T> implements INBTSerializable<C
     }
 
     @Override
-    public CompoundTag serializeNBT() {
-        var tag = new CompoundTag();
+    public void serialize(ValueOutput output) {
         IntStream.range(0, Direction.values().length).forEach((i) -> {
-            tag.putString(String.valueOf(i), storageSegments[i]);
-            tag.putInt("io" + i, automaticIO[i].ordinal());
+            output.putString(String.valueOf(i), storageSegments[i]);
+            output.putInt("io" + i, automaticIO[i].ordinal());
         });
-        return tag;
     }
 
     @Override
-    public void deserializeNBT(CompoundTag nbt) {
+    public void deserialize(ValueInput input) {
         IntStream.range(0, Direction.values().length).forEach((i) -> {
-            storageSegments[i] = nbt.getString(String.valueOf(i));
-            automaticIO[i] = EnumAutomaticIO.values()[nbt.getInt("io" + i)];
+            storageSegments[i] = input.getStringOr(String.valueOf(i), "");
+            automaticIO[i] = EnumAutomaticIO.values()[input.getIntOr("io" + i, 0)];
         });
     }
 }
