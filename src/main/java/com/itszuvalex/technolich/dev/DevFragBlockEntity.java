@@ -22,12 +22,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class DevFragBlockEntity extends BlockEntityCore {
     public final FragColorable colorable = new FragColorable();
-    public final IItemStorage inventory = new ItemStorageArray(1) {
-        @Override
-        public void setChanged() {
-            DevFragBlockEntity.this.setChanged();
-        }
-    };
+    public final IItemStorage inventory = new ItemStorageArray(1, this::markDirty);
     public final ResourceHandler<ItemResource> itemHandler = WrapperResourceHandlerIItemStorage.of(inventory);
 
     public DevFragBlockEntity(BlockPos pos, BlockState state) {

@@ -31,6 +31,16 @@ public class DynamicIItemStorage implements IItemStorage {
     }
 
     @Override
+    public void setSlotQuietly(int index, @NotNull IItemStack stack) {
+        itemStorageSupplier.get().setSlotQuietly(index, stack);
+    }
+
+    @Override
+    public void setChanged() {
+        itemStorageSupplier.get().setChanged();
+    }
+
+    @Override
     public boolean canInsert(int index, @NotNull IItemStack stack) {
         return itemStorageSupplier.get().canInsert(index, stack);
     }

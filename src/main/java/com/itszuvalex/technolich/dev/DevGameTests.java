@@ -44,7 +44,8 @@ public final class DevGameTests {
             TEST_FUNCTIONS.register("client_update_tag", () -> DevGameTests::clientUpdateTag),
             TEST_FUNCTIONS.register("item_capability_insert", () -> DevGameTests::itemCapabilityInsert),
             TEST_FUNCTIONS.register("drops_inventory_on_break", () -> DevGameTests::dropsInventoryOnBreak),
-            TEST_FUNCTIONS.register("level_lookup_returns_core", () -> DevGameTests::levelLookupReturnsCore)
+            TEST_FUNCTIONS.register("level_lookup_returns_core", () -> DevGameTests::levelLookupReturnsCore),
+            TEST_FUNCTIONS.register("inventory_change_marks_dirty", () -> DevGameTests::inventoryChangeMarksDirty)
     );
 
     private DevGameTests() {
@@ -156,6 +157,35 @@ public final class DevGameTests {
                 "Loc4Level#getIBlockEntity wrapped the core");
         helper.assertTrue(Loc4.of(ILevel.of(level), pos).getIBlockEntity(false).orElseThrow() == be,
                 "Loc4ILevel#getIBlockEntity wrapped the core");
+        helper.succeed();
+    }
+
+    /**
+     * Inventory changes must mark the block entity (and so its chunk) for saving: directly, and through the item
+     * capability on commit only.
+     */
+    private static void inventoryChangeMarksDirty(GameTestHelper helper) {
+        var be = place(helper);
+        var pos = helper.absolutePos(POS);
+        var chunk = helper.getLevel().getChunkAt(pos);
+        var handler = helper.getLevel().getCapability(net.neoforged.neoforge.capabilities.Capabilities.Item.BLOCK, pos, null);
+        helper.assertTrue(handler != null, "Item BLOCK capability missing");
+
+        chunk.tryMarkSaved();
+        be.inventory.setSlot(0, IItemStack.of(new ItemStack(Items.DIAMOND)));
+        helper.assertTrue(chunk.isUnsaved(), "Direct inventory change did not mark dirty");
+
+        chunk.tryMarkSaved();
+        try (var tx = Transaction.openRoot()) {
+            handler.insert(0, ItemResource.of(Items.DIAMOND), 1, tx);
+        }
+        helper.assertFalse(chunk.isUnsaved(), "Aborted transaction marked dirty");
+
+        try (var tx = Transaction.openRoot()) {
+            handler.insert(0, ItemResource.of(Items.DIAMOND), 1, tx);
+            tx.commit();
+        }
+        helper.assertTrue(chunk.isUnsaved(), "Committed transaction did not mark dirty");
         helper.succeed();
     }
 }

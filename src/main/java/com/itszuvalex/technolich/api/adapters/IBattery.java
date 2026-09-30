@@ -19,7 +19,17 @@ public interface IBattery extends ValueIOSerializable {
 
     double storage();
 
+    /**
+     * Sets the stored energy.  Batteries with a change listener notify it (see {@link #setChanged()}).
+     */
     void setStorage(double storage);
+
+    /**
+     * Sets the stored energy without notifying any change listener, e.g. inside a NeoForge transaction.
+     */
+    default void setStorageQuietly(double storage) {
+        setStorage(storage);
+    }
 
     double maxStorage();
 
@@ -27,15 +37,29 @@ public interface IBattery extends ValueIOSerializable {
         return maxStorage() - storage();
     }
 
+    /**
+     * @param amt Energy to add; negative amounts are treated as 0.
+     * @return Energy actually added.
+     */
     default double fill(double amt) {
-        var toFill = Math.min(amt, room());
-        setStorage(storage() + toFill);
+        var toFill = Math.max(0, Math.min(amt, room()));
+        if (toFill > 0) setStorage(storage() + toFill);
         return toFill;
     }
 
+    /**
+     * @param amt Energy to remove; negative amounts are treated as 0.
+     * @return Energy actually removed.
+     */
     default double drain(double amt) {
-        var toDrain = Math.min(amt, storage());
-        setStorage(storage() - toDrain);
+        var toDrain = Math.max(0, Math.min(amt, storage()));
+        if (toDrain > 0) setStorage(storage() - toDrain);
         return toDrain;
+    }
+
+    /**
+     * Notifies the battery's change listener, if any (e.g. the owning block entity's {@code setChanged}).
+     */
+    default void setChanged() {
     }
 }

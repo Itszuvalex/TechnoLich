@@ -41,6 +41,16 @@ public class DynamicIBattery implements IBattery {
     }
 
     @Override
+    public void setStorageQuietly(double storage) {
+        batterySupplier.get().setStorageQuietly(storage);
+    }
+
+    @Override
+    public void setChanged() {
+        batterySupplier.get().setChanged();
+    }
+
+    @Override
     public double maxStorage() {
         return batterySupplier.get().maxStorage();
     }

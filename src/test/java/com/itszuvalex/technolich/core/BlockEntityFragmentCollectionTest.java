@@ -1,13 +1,10 @@
 package com.itszuvalex.technolich.core;
 
-import com.itszuvalex.technolich.TestableLevel;
-import com.itszuvalex.technolich.TestableLoc4;
 import com.itszuvalex.technolich.api.adapters.IBlockEntity;
 import com.itszuvalex.technolich.api.adapters.IModule;
 import com.itszuvalex.technolich.api.adapters.Module;
 import com.itszuvalex.technolich.core.frag.BlockEntityFragment;
 import com.itszuvalex.technolich.core.frag.InternalBlockEntityFragment;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.NotNull;
@@ -32,8 +29,7 @@ class BlockEntityFragmentCollectionTest {
     }
 
     static BlockEntityFragmentCollection collection() {
-        return new BlockEntityFragmentCollection(
-                new TestableNetworkNodeBlockEntity(BlockPos.ZERO, new TestableLevel(TestableLoc4.DEFAULT_DIM)));
+        return new BlockEntityFragmentCollection(new TestableFragmentHost());
     }
 
     static InternalBlockEntityFragment internal(String name) {
@@ -62,6 +58,31 @@ class BlockEntityFragmentCollectionTest {
                 return (d) -> value;
             }
         };
+    }
+
+    @Test
+    void AddInternalFragment_AttachesHost() {
+        var host = new TestableFragmentHost();
+        var frags = new BlockEntityFragmentCollection(host);
+        var frag = new InternalBlockEntityFragment() {
+            @Override
+            public @NotNull String name() {
+                return "Dirtying";
+            }
+
+            void change() {
+                markDirty();
+                markDirtyAndSync();
+            }
+        };
+        frag.change(); // Not attached yet: no-op.
+        Assertions.assertEquals(0, host.dirtyCount);
+
+        frags.addInternalFragment(frag);
+        frag.change();
+
+        Assertions.assertEquals(2, host.dirtyCount);
+        Assertions.assertEquals(1, host.syncCount);
     }
 
     @Test

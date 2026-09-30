@@ -52,6 +52,15 @@ public class WrapperContainerIItemStorage implements Container {
         storage.setSlot(p_18944_, IItemStack.of(p_18945_));
     }
 
+    /**
+     * Inside a transaction, write without notifying; NeoForge calls {@link #setChanged()} once on root commit.
+     */
+    @Override
+    public void setItem(int slot, @NotNull ItemStack stack, boolean insideTransaction) {
+        if (insideTransaction) storage.setSlotQuietly(slot, IItemStack.of(stack));
+        else setItem(slot, stack);
+    }
+
     @Override
     public void setChanged() {
         storage.setChanged();

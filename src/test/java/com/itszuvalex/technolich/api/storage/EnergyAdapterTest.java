@@ -37,6 +37,33 @@ public class EnergyAdapterTest {
     }
 
     @Test
+    void WrapperEnergyHandler_NotifiesBatteryOnceOnCommitOnly() {
+        var changes = new int[1];
+        var battery = new PowerBattery(100, () -> changes[0]++);
+        var handler = new WrapperEnergyHandlerIBattery(battery);
+        try (var tx = Transaction.openRoot()) {
+            handler.insert(30, tx);
+        }
+        Assertions.assertEquals(0, changes[0], "aborted transaction must not notify");
+        try (var tx = Transaction.openRoot()) {
+            handler.insert(30, tx);
+            handler.extract(10, tx);
+            Assertions.assertEquals(0, changes[0], "no notification while the transaction is open");
+            tx.commit();
+        }
+        Assertions.assertEquals(1, changes[0]);
+    }
+
+    @Test
+    void IBattery_FillDrainNegative_DoNothing() {
+        var battery = new PowerBattery(100);
+        battery.setStorage(50);
+        Assertions.assertEquals(0, battery.fill(-10));
+        Assertions.assertEquals(0, battery.drain(-10));
+        Assertions.assertEquals(50, battery.storage());
+    }
+
+    @Test
     void WrapperEnergyHandler_TruncatesFractionalEnergy() {
         var battery = new PowerBattery(100);
         battery.setStorage(10.75);

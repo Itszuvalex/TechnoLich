@@ -35,7 +35,18 @@ public interface IItemStorage extends ValueIOSerializable {
 
     int size();
 
+    /**
+     * Replaces a slot.  Storages with a change listener notify it (see {@link #setChanged()}).
+     */
     void setSlot(int index, @Nonnull @NotNull IItemStack stack);
+
+    /**
+     * Replaces a slot without notifying any change listener.  For callers that batch changes and call
+     * {@link #setChanged()} themselves, e.g. inside a NeoForge transaction, where side effects must wait for commit.
+     */
+    default void setSlotQuietly(int index, @Nonnull @NotNull IItemStack stack) {
+        setSlot(index, stack);
+    }
 
     default boolean canInsert(int index, @NotNull @Nonnull IItemStack stack) {
         return true;
@@ -169,6 +180,9 @@ public interface IItemStorage extends ValueIOSerializable {
         return IntStream.range(0, size()).filter((i) -> !get(i).isEmpty()).findFirst().isEmpty();
     }
 
+    /**
+     * Notifies the storage's change listener, if any (e.g. the owning block entity's {@code setChanged}).
+     */
     default void setChanged() {
     }
 }

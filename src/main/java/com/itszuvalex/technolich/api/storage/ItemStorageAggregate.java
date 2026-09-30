@@ -30,6 +30,16 @@ public class ItemStorageAggregate implements IItemStorage {
         getStorageForIndex(index).setSlot(getLocalStorageIndexForIndex(index), stack);
     }
 
+    @Override
+    public void setSlotQuietly(int index, @NotNull IItemStack stack) {
+        getStorageForIndex(index).setSlotQuietly(getLocalStorageIndexForIndex(index), stack);
+    }
+
+    @Override
+    public void setChanged() {
+        Arrays.stream(storages).forEach(IItemStorage::setChanged);
+    }
+
     private @NotNull
     @Nonnull
     IItemStorage getStorageForIndex(int index) {

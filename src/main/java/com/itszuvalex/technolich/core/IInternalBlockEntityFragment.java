@@ -10,4 +10,9 @@ public interface IInternalBlockEntityFragment extends IBlockEntityEventHandler, 
     @Nonnull
     String name();
 
+    /**
+     * Called once when the fragment is added to its block entity's fragment collection.
+     */
+    default void onAttach(@NotNull @Nonnull IFragmentHost host) {
+    }
 }

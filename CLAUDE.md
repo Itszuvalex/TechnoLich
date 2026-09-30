@@ -83,6 +83,8 @@ A `BlockEntityCore` owns a `BlockEntityFragmentCollection` (`fragList`). Behavio
 - `fragList.addFragment(IBlockEntityFragment<T>)`: a fragment that *exposes* a module `T` (e.g. `FragColorable` exposes `Color`). Its `faceToModuleMapper(be)` maps a nullable `Direction` to the current instance (or null). It is called on every query, so return live state.
 - `fragList.addInternalFragment(IInternalBlockEntityFragment)`: hooks without an exposed module (serialization, `onRemove`, e.g. `FragDropInventory`).
 - Fragment `name()`s must be unique per block entity (they key saved data), and each module may be exposed by only one fragment; both throw `IllegalArgumentException` otherwise.
+- Each fragment gets an `IFragmentHost` through `onAttach` when added (`BlockEntityCore` is the host). Fragments extending `InternalBlockEntityFragment`/`BlockEntityFragment` call `markDirty()` after changing saved state and `markDirtyAndSync()` after changing client-visible (DESCRIPTION) state; the latter also sends a block update to clients.
+- Storages report their own changes: construct `ItemStorageArray`/`ItemStorageNBT`/`PowerBattery` with an `onChanged` runnable (e.g. `this::markDirty`) and every `setSlot`/`setStorage` runs it. `setSlotQuietly`/`setStorageQuietly` skip it; the NeoForge adapters use those inside transactions and call `setChanged()` once on root commit, so aborted transactions never dirty the block entity.
 - `fragList.addCapability(BlockCapability<T, Direction>, side -> T)`: expose a non-module capability, typically one of `ModuleCapabilities.STANDARD` (NeoForge item/fluid/energy).
 - `fragList.addTickable(...)`: ticked by `TickableBlockEntityCore` when the block's `TickableEntityBlockCore#hasTicker(side)` returns true.
 

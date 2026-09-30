@@ -30,4 +30,14 @@ public class ItemStorageSlice implements IItemStorage {
     public void setSlot(int index, @NotNull IItemStack stack) {
         storage.setSlot(slots[index], stack);
     }
+
+    @Override
+    public void setSlotQuietly(int index, @NotNull IItemStack stack) {
+        storage.setSlotQuietly(slots[index], stack);
+    }
+
+    @Override
+    public void setChanged() {
+        storage.setChanged();
+    }
 }

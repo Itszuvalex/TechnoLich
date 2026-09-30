@@ -15,6 +15,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
@@ -29,7 +30,7 @@ import org.slf4j.Logger;
 import javax.annotation.Nonnull;
 import java.util.Optional;
 
-public class BlockEntityCore extends BlockEntity implements IBlockEntity, IBlockEntityBlockEventHandler, IScopedSerialization {
+public class BlockEntityCore extends BlockEntity implements IBlockEntity, IBlockEntityBlockEventHandler, IScopedSerialization, IFragmentHost {
     private static final Logger LOGGER = LogUtils.getLogger();
     public static final String FRAG_KEY = "frags";
 
@@ -45,6 +46,25 @@ public class BlockEntityCore extends BlockEntity implements IBlockEntity, IBlock
     @Override
     public @NotNull BlockEntity toMinecraft() {
         return this;
+    }
+
+    @Override
+    public @NotNull IBlockEntity blockEntity() {
+        return this;
+    }
+
+    @Override
+    public void markDirty() {
+        setChanged();
+    }
+
+    @Override
+    public void markDirtyAndSync() {
+        setChanged();
+        if (level != null && !level.isClientSide() && handlesScope(NBTSerializationScope.DESCRIPTION)) {
+            var state = getBlockState();
+            level.sendBlockUpdated(worldPosition, state, state, Block.UPDATE_CLIENTS);
+        }
     }
 
     @Override

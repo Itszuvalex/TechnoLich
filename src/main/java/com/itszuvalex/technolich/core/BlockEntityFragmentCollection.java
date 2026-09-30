@@ -32,7 +32,7 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
     ArrayList<IBlockEntityTickable> tickList;
     private final @NotNull
     @Nonnull
-    IBlockEntity blockEntity;
+    IFragmentHost host;
     private final @NotNull
     @Nonnull
     Set<String> fragmentNames = new HashSet<>();
@@ -40,11 +40,11 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
     @Nonnull
     Set<IModule<?>> exposedModules = new HashSet<>();
 
-    public BlockEntityFragmentCollection(@NotNull @Nonnull IBlockEntity blockEntity) {
+    public BlockEntityFragmentCollection(@NotNull @Nonnull IFragmentHost host) {
         modCapMap = new ModuleCapabilityArrayListMap();
         modList = new ArrayList<>();
         tickList = new ArrayList<>();
-        this.blockEntity = blockEntity;
+        this.host = host;
     }
 
     /**
@@ -56,6 +56,7 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
         if (!fragmentNames.add(fragment.name()))
             throw new IllegalArgumentException("Duplicate fragment name: " + fragment.name());
         modList.add(fragment);
+        fragment.onAttach(host);
     }
 
     /**
@@ -66,7 +67,7 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
             throw new IllegalArgumentException("Module " + fragment.module().id() + " is already exposed by another fragment");
         addInternalFragment(fragment);
         exposedModules.add(fragment.module());
-        var getter = fragment.faceToModuleMapper(blockEntity);
+        var getter = fragment.faceToModuleMapper(host.blockEntity());
         modCapMap.addModule(fragment.module(), getter);
     }
 

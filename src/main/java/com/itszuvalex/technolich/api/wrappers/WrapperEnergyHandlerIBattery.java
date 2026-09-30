@@ -39,7 +39,9 @@ public class WrapperEnergyHandlerIBattery extends SnapshotJournal<Double> implem
         var toFill = (int) Math.min(amount, Math.floor(battery.room()));
         if (toFill <= 0) return 0;
         updateSnapshots(transaction);
-        return (int) battery.fill(toFill);
+        // Quiet while the transaction is open; the battery is notified once, on root commit.
+        battery.setStorageQuietly(battery.storage() + toFill);
+        return toFill;
     }
 
     @Override
@@ -48,7 +50,8 @@ public class WrapperEnergyHandlerIBattery extends SnapshotJournal<Double> implem
         var toDrain = (int) Math.min(amount, Math.floor(battery.storage()));
         if (toDrain <= 0) return 0;
         updateSnapshots(transaction);
-        return (int) battery.drain(toDrain);
+        battery.setStorageQuietly(battery.storage() - toDrain);
+        return toDrain;
     }
 
     @Override
@@ -58,6 +61,11 @@ public class WrapperEnergyHandlerIBattery extends SnapshotJournal<Double> implem
 
     @Override
     protected void revertToSnapshot(Double snapshot) {
-        battery.setStorage(snapshot);
+        battery.setStorageQuietly(snapshot);
+    }
+
+    @Override
+    protected void onRootCommit(Double originalState) {
+        battery.setChanged();
     }
 }
