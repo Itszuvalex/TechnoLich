@@ -1,5 +1,6 @@
 package com.itszuvalex.technolich;
 
+import com.itszuvalex.technolich.api.Components;
 import com.itszuvalex.technolich.api.Modules;
 import com.itszuvalex.technolich.api.utility.LazySingleSidedHolder;
 import com.itszuvalex.technolich.core.NetworkManager;
@@ -27,6 +28,7 @@ public class TechnoLich {
     public TechnoLich(IEventBus modEventBus, ModContainer modContainer) {
         // Built-in modules must exist before RegisterCapabilitiesEvent
         Modules.init();
+        Components.register(modEventBus);
 
         if (!FMLEnvironment.isProduction()) {
             DevContent.register(modEventBus);

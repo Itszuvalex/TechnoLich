@@ -102,7 +102,7 @@ An `IModule<T>` is a handle for a behaviour, identified by a namespaced `Identif
 `IScopedSerialization` (`serializeTo(scope, ValueOutput)`, `deserialize(ValueInput, scope)`, `handlesScope(scope)`) with `NBTSerializationScope`:
 - `LEVEL`: world save.
 - `DESCRIPTION`: client sync (chunk load and block update packets).
-- `ITEM`: reserved for block-entity-data-on-item; **not wired to anything yet**.
+- `ITEM`: data that stays with the block's item form. `BlockEntityCore#collectImplicitComponents` writes it into the `technolich:fragment_data` component (`Components.FRAGMENT_DATA`) and `applyImplicitComponents` restores it on placement. Creative pick-block (with data) carries it automatically; for survival drops the block's loot table must copy it: `{"function": "minecraft:copy_components", "source": "block_entity", "include": ["technolich:fragment_data"]}`. Keep inventories out of ITEM scope; they drop their contents instead.
 
 Each fragment writes into its own child keyed by `name()` under the `frags` key. Use `ValueOutput`/`ValueInput` (and `Codec`s via `store`/`read`), not raw `CompoundTag`, for anything saved with a block entity.
 

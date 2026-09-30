@@ -1,5 +1,6 @@
 package com.itszuvalex.technolich.core;
 
+import com.itszuvalex.technolich.api.Components;
 import com.itszuvalex.technolich.api.adapters.IBlockEntity;
 import com.itszuvalex.technolich.api.adapters.ILevel;
 import com.itszuvalex.technolich.api.adapters.IModule;
@@ -9,6 +10,9 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.component.DataComponentGetter;
+import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
@@ -19,6 +23,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
@@ -147,6 +153,39 @@ public class BlockEntityCore extends BlockEntity implements IBlockEntity, IBlock
             serializeTo(NBTSerializationScope.DESCRIPTION, output);
             return output.buildResult();
         }
+    }
+
+    /**
+     * Carries ITEM-scope fragment data on the block's item form (loot {@code copy_components}, creative pick-block).
+     */
+    @Override
+    protected void collectImplicitComponents(DataComponentMap.@NotNull Builder components) {
+        super.collectImplicitComponents(components);
+        if (!handlesScope(NBTSerializationScope.ITEM)) return;
+        try (var reporter = new ProblemReporter.ScopedCollector(problemPath(), LOGGER)) {
+            var output = TagValueOutput.createWithContext(reporter, registries());
+            serializeTo(NBTSerializationScope.ITEM, output);
+            components.set(Components.FRAGMENT_DATA.get(), CustomData.of(output.buildResult()));
+        }
+    }
+
+    /**
+     * Restores ITEM-scope fragment data when the block is placed from an item carrying it.
+     */
+    @Override
+    protected void applyImplicitComponents(@NotNull DataComponentGetter components) {
+        super.applyImplicitComponents(components);
+        var data = components.get(Components.FRAGMENT_DATA.get());
+        if (data == null || !handlesScope(NBTSerializationScope.ITEM)) return;
+        try (var reporter = new ProblemReporter.ScopedCollector(problemPath(), LOGGER)) {
+            deserialize(TagValueInput.create(reporter, registries(), data.copyTag()), NBTSerializationScope.ITEM);
+        }
+    }
+
+    private @NotNull
+    @Nonnull
+    HolderLookup.Provider registries() {
+        return level != null ? level.registryAccess() : RegistryAccess.EMPTY;
     }
 
     @Override

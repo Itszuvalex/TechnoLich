@@ -2,6 +2,9 @@ package com.itszuvalex.technolich.dev;
 
 import com.itszuvalex.technolich.TechnoLich;
 import com.itszuvalex.technolich.api.Capabilities;
+import com.itszuvalex.technolich.api.Components;
+import com.itszuvalex.technolich.util.Color;
+import net.minecraft.core.component.DataComponentPatch;
 import com.itszuvalex.technolich.api.Modules;
 import com.itszuvalex.technolich.api.adapters.IItemStack;
 import com.itszuvalex.technolich.api.adapters.ILevel;
@@ -45,7 +48,8 @@ public final class DevGameTests {
             TEST_FUNCTIONS.register("item_capability_insert", () -> DevGameTests::itemCapabilityInsert),
             TEST_FUNCTIONS.register("drops_inventory_on_break", () -> DevGameTests::dropsInventoryOnBreak),
             TEST_FUNCTIONS.register("level_lookup_returns_core", () -> DevGameTests::levelLookupReturnsCore),
-            TEST_FUNCTIONS.register("inventory_change_marks_dirty", () -> DevGameTests::inventoryChangeMarksDirty)
+            TEST_FUNCTIONS.register("inventory_change_marks_dirty", () -> DevGameTests::inventoryChangeMarksDirty),
+            TEST_FUNCTIONS.register("item_scope_components_round_trip", () -> DevGameTests::itemScopeComponentsRoundTrip)
     );
 
     private DevGameTests() {
@@ -189,6 +193,27 @@ public final class DevGameTests {
             tx.commit();
         }
         helper.assertTrue(chunk.isUnsaved(), "Committed transaction did not mark dirty");
+        helper.succeed();
+    }
+
+    /**
+     * ITEM-scope fragments travel through the block's item components (as loot copy_components and pick-block do);
+     * LEVEL-only state such as the inventory does not.
+     */
+    private static void itemScopeComponentsRoundTrip(GameTestHelper helper) {
+        var be = place(helper);
+        var color = new Color(0xFF123456);
+        be.colorable.setColor(color);
+        be.inventory.setSlot(0, IItemStack.of(new ItemStack(Items.DIAMOND)));
+
+        var components = be.collectComponents();
+        helper.assertTrue(components.has(Components.FRAGMENT_DATA.get()), "fragment_data component missing");
+
+        var placed = new DevFragBlockEntity(be.getBlockPos(), be.getBlockState());
+        placed.applyComponents(components, DataComponentPatch.EMPTY);
+
+        helper.assertValueEqual(color, placed.colorable.getColor(), "color from item");
+        helper.assertTrue(placed.inventory.get(0).isEmpty(), "Inventory is LEVEL scope only and must not ride on the item");
         helper.succeed();
     }
 }
