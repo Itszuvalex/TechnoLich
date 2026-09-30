@@ -3,6 +3,7 @@ plugins {
     id 'maven-publish'
     id 'net.neoforged.moddev' version '2.0.148'
     id 'idea'
+    id 'org.jetbrains.kotlin.jvm' version '2.4.0'
 }
 
 tasks.named('wrapper', Wrapper).configure {
@@ -27,7 +28,11 @@ sourceSets.main.resources {
 }
 
 repositories {
-    // Add here additional repositories if required by some of the dependencies below.
+    maven {
+        name = 'Kotlin for Forge'
+        url = 'https://thedarkcolour.github.io/KotlinForForge/'
+        content { includeGroup 'thedarkcolour' }
+    }
 }
 
 base {
@@ -36,6 +41,7 @@ base {
 
 // Mojang ships Java 25 to end users in 26.1.2, so mods should target Java 25.
 java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+kotlin.jvmToolchain(25)
 
 neoForge {
     // Specify the version of NeoForge to use.
@@ -117,6 +123,9 @@ configurations {
 }
 
 dependencies {
+    // Kotlin language loader + Kotlin stdlib/reflect/coroutines at runtime (jar-in-jar'd by KFF itself)
+    implementation "thedarkcolour:kotlinforforge-neoforge:${kff_version}"
+
     testImplementation 'org.junit.jupiter:junit-jupiter:5.13.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
@@ -154,6 +163,7 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             mod_name               : mod_name,
             mod_license            : mod_license,
             mod_version            : mod_version,
+            kff_version            : kff_version,
     ]
     inputs.properties replaceProperties
     expand replaceProperties
