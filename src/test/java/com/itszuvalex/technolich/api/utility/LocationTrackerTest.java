@@ -237,4 +237,30 @@ class LocationTrackerTest {
         }
     }
 
+    @Test
+    void GetLocationsInRange_OnPlayerCoords_NotReturnLocationOutOfRange() {
+        // Arrange
+        var tracker = new LocationTracker();
+        // Shares two coordinates with the query point, so a product of per-axis distances would be 0.
+        tracker.trackLocation(new Loc4Indirect(TestableLoc4.DEFAULT_DIM, new BlockPos(0, 0, 30)));
+        // Act
+        var locs = tracker.getLocationsInRange(TestableLoc4.DEFAULT_DIM, new Vector3f(0, 0, 0), 25f);
+        // Assert
+        Assertions.assertEquals(0, locs.count());
+    }
+
+    @Test
+    void GetLocationsInRange_OnPlayerCoords_UseEuclideanDistance() {
+        // Arrange
+        var tracker = new LocationTracker();
+        var inRange = new Loc4Indirect(TestableLoc4.DEFAULT_DIM, new BlockPos(3, 4, 0)); // distance 5
+        var outOfRange = new Loc4Indirect(TestableLoc4.DEFAULT_DIM, new BlockPos(3, 4, 12)); // distance 13
+        tracker.trackLocation(inRange);
+        tracker.trackLocation(outOfRange);
+        // Act
+        var locs = tracker.getLocationsInRange(TestableLoc4.DEFAULT_DIM, new Vector3f(0, 0, 0), 5.5f).toList();
+        // Assert
+        Assertions.assertEquals(java.util.List.of(inRange), locs);
+    }
+
 }

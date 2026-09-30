@@ -4,6 +4,8 @@ import com.itszuvalex.technolich.TechnoLich;
 import com.itszuvalex.technolich.api.Capabilities;
 import com.itszuvalex.technolich.api.Modules;
 import com.itszuvalex.technolich.api.adapters.IItemStack;
+import com.itszuvalex.technolich.api.adapters.ILevel;
+import com.itszuvalex.technolich.api.utility.Loc4;
 import com.itszuvalex.technolich.api.wrappers.WrapperBlockEntity;
 import com.itszuvalex.technolich.util.Color;
 import net.minecraft.core.BlockPos;
@@ -41,7 +43,8 @@ public final class DevGameTests {
             TEST_FUNCTIONS.register("level_save_load", () -> DevGameTests::levelSaveLoad),
             TEST_FUNCTIONS.register("client_update_tag", () -> DevGameTests::clientUpdateTag),
             TEST_FUNCTIONS.register("item_capability_insert", () -> DevGameTests::itemCapabilityInsert),
-            TEST_FUNCTIONS.register("drops_inventory_on_break", () -> DevGameTests::dropsInventoryOnBreak)
+            TEST_FUNCTIONS.register("drops_inventory_on_break", () -> DevGameTests::dropsInventoryOnBreak),
+            TEST_FUNCTIONS.register("level_lookup_returns_core", () -> DevGameTests::levelLookupReturnsCore)
     );
 
     private DevGameTests() {
@@ -137,5 +140,22 @@ public final class DevGameTests {
         be.inventory.setSlot(0, IItemStack.of(new ItemStack(Items.DIAMOND, 2)));
         helper.destroyBlock(POS);
         helper.succeedWhen(() -> helper.assertItemEntityPresent(Items.DIAMOND, POS, 2.0));
+    }
+
+    /**
+     * Location lookups must hand back the BlockEntityCore itself, not a capability-only wrapper, so modules without a
+     * block capability (e.g. network modules) stay reachable.
+     */
+    private static void levelLookupReturnsCore(GameTestHelper helper) {
+        var be = place(helper);
+        var level = helper.getLevel();
+        var pos = helper.absolutePos(POS);
+
+        helper.assertTrue(ILevel.of(level).getIBlockEntity(pos) == be, "ILevel#getIBlockEntity wrapped the core");
+        helper.assertTrue(Loc4.of(level, pos).getIBlockEntity(false).orElseThrow() == be,
+                "Loc4Level#getIBlockEntity wrapped the core");
+        helper.assertTrue(Loc4.of(ILevel.of(level), pos).getIBlockEntity(false).orElseThrow() == be,
+                "Loc4ILevel#getIBlockEntity wrapped the core");
+        helper.succeed();
     }
 }

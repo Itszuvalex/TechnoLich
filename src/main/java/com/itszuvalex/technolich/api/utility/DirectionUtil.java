@@ -20,17 +20,20 @@ public class DirectionUtil {
         };
     }
 
-    public static Direction getHorizontalRelativeDirectionFromAbsolute(Direction absolute, Direction relative) {
-        return switch (relative) {
+    /**
+     * Inverse of {@link #getAbsoluteDirectionFromHorizontalRelative}.
+     */
+    public static Direction getHorizontalRelativeDirectionFromAbsolute(Direction absolute, Direction front) {
+        return switch (absolute) {
             case UP -> Direction.UP;
             case DOWN -> Direction.DOWN;
             default ->
-                    switch(absolute) {
-                        case EAST -> relative.getCounterClockWise();
-                        case SOUTH -> relative.getOpposite();
-                        case WEST -> relative.getClockWise();
+                    switch(front) {
+                        case EAST -> absolute.getCounterClockWise();
+                        case SOUTH -> absolute.getOpposite();
+                        case WEST -> absolute.getClockWise();
                         // case NORTH -> // equivalent to default
-                        default -> relative;
+                        default -> absolute;
                     };
         };
     }

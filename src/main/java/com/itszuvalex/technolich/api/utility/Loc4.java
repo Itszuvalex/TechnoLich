@@ -141,12 +141,15 @@ public abstract class Loc4 implements Comparable<Loc4> {
             Identifier.CODEC.fieldOf(DIM_KEY).forGetter(Loc4::dimensionId)
     ).apply(instance, (x, y, z, dim) -> Loc4.of(dim, new BlockPos(x, y, z))));
 
+    /**
+     * Value equality on dimension and position, regardless of subclass, so e.g. a {@link Loc4Level} and a decoded
+     * {@link Loc4Indirect} for the same block are interchangeable as map keys.  Consistent with {@link #compareTo}.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Loc4 loc4 = (Loc4) o;
-        if (!dimensionId().equals(((Loc4) o).dimensionId())) return false;
+        if (!(o instanceof Loc4 loc4)) return false;
+        if (!dimensionId().equals(loc4.dimensionId())) return false;
         return pos.equals(loc4.pos);
     }
 

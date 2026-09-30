@@ -72,7 +72,8 @@ public interface IItemStorage extends ValueIOSerializable {
         var slot = get(index);
         if (slot.isEmpty()) {
             if (stack.stackSize() <= max) {
-                setSlot(index, stack);
+                // Copy so the caller's later mutations can't reach into this storage.
+                setSlot(index, stack.copy());
                 return IItemStack.Empty;
             }
 
@@ -86,6 +87,8 @@ public interface IItemStorage extends ValueIOSerializable {
 
         if (slot.isItemEqual(stack)) {
             var room = max - slot.stackSize();
+            // The slot may already hold more than this insert allows (e.g. a smaller stack limit); insert nothing.
+            if (room <= 0) return stack;
             if (stack.stackSize() <= room) {
                 slot.modifyStackSize(stack.stackSize());
                 setSlot(index, slot);
@@ -147,10 +150,13 @@ public interface IItemStorage extends ValueIOSerializable {
         return transferRemaining.get();
     }
 
+    /**
+     * Replaces every slot.  {@link #serialize} omits empty slots, so a missing slot is cleared rather than kept.
+     */
     @Override
     default void deserialize(@NotNull @Nonnull ValueInput input) {
         IntStream.range(0, size()).forEach((i) ->
-                input.read(String.valueOf(i), IItemStack.codec()).ifPresent((stack) -> setSlot(i, stack)));
+                setSlot(i, input.read(String.valueOf(i), IItemStack.codec()).orElse(IItemStack.Empty)));
     }
 
     @Override

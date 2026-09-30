@@ -55,7 +55,7 @@ public class WrapperLevel implements ILevel {
     public IBlockEntity getIBlockEntity(BlockPos pos) {
         var blockEntity = level.getBlockEntity(pos);
         if (blockEntity == null) return null;
-        return new WrapperBlockEntity(blockEntity);
+        return IBlockEntity.of(blockEntity);
     }
 
     @Override

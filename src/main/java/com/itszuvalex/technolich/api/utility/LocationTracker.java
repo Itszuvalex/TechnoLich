@@ -131,7 +131,8 @@ public class LocationTracker {
     @Nonnull
     Stream<Loc4> getLocationsInRange(@NotNull @Nonnull Identifier dim,
                                      Vector3f loc, float range) {
-        var chunkCoords = new ChunkCoord(((int) loc.x()) >> 4, ((int) loc.z()) >> 4);
+        // Floor, not truncate: (int) -0.5f is 0, but the block is in chunk -1.
+        var chunkCoords = new ChunkCoord(((int) Math.floor(loc.x())) >> 4, ((int) Math.floor(loc.z())) >> 4);
         int radius = (int) Math.ceil(range / MCConstants.CHUNK_SIZE);
         long rsqr;
         try {
@@ -153,15 +154,16 @@ public class LocationTracker {
             chunksToCheck = getChunkCoordsInRadiusInDim(chunkCoords, radius, dim);
         }
 
-        double rangesqr = range * range;
+        double rangesqr = (double) range * range;
 
         return chunksToCheck.flatMap((chunkCoord) ->
                 getLocationsInChunk(dim, chunkCoord)
-        ).filter((lo) ->
-                ((lo.x() - loc.x()) * (lo.x() - loc.x()) *
-                        (lo.y() - loc.y()) * (lo.y() - loc.y()) *
-                        (lo.z() - loc.z()) * (lo.z() - loc.z()))
-                        <= rangesqr);
+        ).filter((lo) -> {
+            double dx = lo.x() - loc.x();
+            double dy = lo.y() - loc.y();
+            double dz = lo.z() - loc.z();
+            return dx * dx + dy * dy + dz * dz <= rangesqr;
+        });
     }
 
     @Nonnull

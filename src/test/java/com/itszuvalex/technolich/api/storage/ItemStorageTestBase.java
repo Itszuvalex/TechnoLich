@@ -408,4 +408,48 @@ public abstract class ItemStorageTestBase {
             }
         });
     }
+
+    @Test
+    void Deserialize_IntoOccupiedStorage_ClearSlotsMissingFromData() {
+        var state = getState();
+        // Arrange
+        MCAssert.assertIItemStackEmpty(state.storage().get(9));
+        var target = storageWithSize(state.testLength());
+        target.setSlot(9, new TestableIItemStack(4, 7));
+        var output = TagValueOutput.createWithoutContext(ProblemReporter.DISCARDING);
+        state.storage().serialize(output);
+        // Act
+        target.deserialize(TagValueInput.create(ProblemReporter.DISCARDING, RegistryAccess.EMPTY, output.buildResult()));
+        // Assert
+        MCAssert.assertIItemStackEmpty(target.get(9));
+        Assertions.assertEquals(state.storage().get(1).stackSize(), target.get(1).stackSize());
+    }
+
+    @Test
+    void Insert_SlotAlreadyOverInsertedStackLimit_InsertNothingReturnStack() {
+        // Arrange
+        var storage = storageWithSize(1);
+        storage.setSlot(0, new TestableIItemStack(1, 10));
+        var ins = new TestableIItemStack(1, 3);
+        ins.testStackMax = 4;
+        Assertions.assertTrue(ins.isItemEqual(storage.get(0)));
+        // Act
+        var ret = storage.insert(0, ins);
+        // Assert
+        Assertions.assertEquals(10, storage.get(0).stackSize());
+        Assertions.assertEquals(3, ret.stackSize());
+        Assertions.assertTrue(ret.isItemEqual(ins));
+    }
+
+    @Test
+    void Insert_ItemIntoEmpty_CallerMutationDoesNotAffectStorage() {
+        // Arrange
+        var storage = storageWithSize(1);
+        var ins = new TestableIItemStack(1, 5);
+        // Act
+        storage.insert(0, ins);
+        ins.setStackSize(1);
+        // Assert
+        Assertions.assertEquals(5, storage.get(0).stackSize());
+    }
 }

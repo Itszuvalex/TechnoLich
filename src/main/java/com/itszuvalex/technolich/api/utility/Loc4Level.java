@@ -1,7 +1,6 @@
 package com.itszuvalex.technolich.api.utility;
 
 import com.itszuvalex.technolich.api.adapters.IBlockEntity;
-import com.itszuvalex.technolich.api.wrappers.WrapperBlockEntity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
@@ -45,7 +44,7 @@ public class Loc4Level extends Loc4 {
     @Override
     public @NotNull Optional<IBlockEntity> getIBlockEntity(boolean force) {
         if (force || level.isLoaded(getPos()))
-            return Optional.ofNullable(level.getBlockEntity(getPos())).map(WrapperBlockEntity::new);
+            return Optional.ofNullable(level.getBlockEntity(getPos())).map(IBlockEntity::of);
         return Optional.empty();
     }
 

@@ -111,7 +111,7 @@ public abstract class TileNetwork<C extends INetworkNode<C, N>, N extends TileNe
         if (aModOpt.isEmpty()) return;
         var aMod = aModOpt.get();
 
-        var bModOpt = getModForLoc(a);
+        var bModOpt = getModForLoc(b);
         if (bModOpt.isEmpty()) return;
         var bMod = bModOpt.get();
 

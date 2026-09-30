@@ -10,7 +10,9 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.*;
 
 import javax.annotation.Nonnull;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 class NetworkTest {
     static IModule<TestableNetworkNode> module;
@@ -337,5 +339,28 @@ class NetworkTest {
         Assertions.assertEquals(1, edges.size());
         var testEdge = new NetworkEdge(node.getLoc(), nodeNeighbor.getLoc());
         Assertions.assertTrue(edges.stream().anyMatch(testEdge::equals));
+    }
+
+    @Test
+    void AddConnectionLocs_NodesInDifferentNetworks_ConnectBothAndTakeover() {
+        // Arrange
+        var state = getState();
+        var network2 = new TestableNetwork(networkManager.getNextID(), module, networkManager);
+        network2.register();
+        // Not neighbors, so addNode doesn't connect them on its own.
+        var node = state.createNode(new BlockPos(0, 0, 0));
+        state.network.addNode(node);
+        var other = state.createNode(new BlockPos(5, 0, 0));
+        network2.addNode(other);
+        // Act
+        state.network.addConnectionLocs(node.getLoc(), other.getLoc());
+        // Assert
+        Assertions.assertEquals(Set.of(other.getLoc()), node.connectedTo);
+        Assertions.assertEquals(Set.of(node.getLoc()), other.connectedTo);
+        Assertions.assertSame(state.network, other.getNetwork());
+        Assertions.assertTrue(networkManager.getNetwork(network2.ID()).isEmpty());
+        Assertions.assertEquals(2, state.network.size());
+        var testEdge = new NetworkEdge(node.getLoc(), other.getLoc());
+        Assertions.assertEquals(List.of(testEdge), state.network.getEdges().toList());
     }
 }
