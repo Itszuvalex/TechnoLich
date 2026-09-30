@@ -82,13 +82,14 @@ A `BlockEntityCore` owns a `BlockEntityFragmentCollection` (`fragList`). Behavio
 
 - `fragList.addFragment(IBlockEntityFragment<T>)`: a fragment that *exposes* a module `T` (e.g. `FragColorable` exposes `Color`). Its `faceToModuleMapper(be)` maps a nullable `Direction` to the current instance (or null). It is called on every query, so return live state.
 - `fragList.addInternalFragment(IInternalBlockEntityFragment)`: hooks without an exposed module (serialization, `onRemove`, e.g. `FragDropInventory`).
+- Fragment `name()`s must be unique per block entity (they key saved data), and each module may be exposed by only one fragment; both throw `IllegalArgumentException` otherwise.
 - `fragList.addCapability(BlockCapability<T, Direction>, side -> T)`: expose a non-module capability, typically one of `ModuleCapabilities.STANDARD` (NeoForge item/fluid/energy).
 - `fragList.addTickable(...)`: ticked by `TickableBlockEntityCore` when the block's `TickableEntityBlockCore#hasTicker(side)` returns true.
 
 `BlockEntityCore` wires fragments into the vanilla lifecycle: `saveAdditional`/`loadAdditional` (LEVEL scope), `getUpdateTag`/`handleUpdateTag`/`onDataPacket` (DESCRIPTION scope), `setRemoved`/`clearRemoved` (fragment invalidation), and `preRemoveSideEffects` → fragment `onRemove` (server only, only when the block actually changes).
 
 ### Modules and capabilities
-An `IModule<T>` is a named handle for a behaviour, optionally backed by a NeoForge `BlockCapability<T, Direction>` and/or `ItemCapability<T, ItemAccess>`. Register with `Module.registerModule(name, blockCap[, itemCap])`; names must be unique.
+An `IModule<T>` is a handle for a behaviour, identified by a namespaced `Identifier` (`id()`, e.g. `technolich:colorable`), optionally backed by a NeoForge `BlockCapability<T, Direction>` and/or `ItemCapability<T, ItemAccess>`. Register with `Module.registerModule(id, blockCap[, itemCap])`; ids must be unique (the registry is thread-safe for parallel mod construction).
 
 - Internal lookups: `IModuleProvider#getModule(module, side)` returns `Optional<T>` (implemented by `BlockEntityCore`, `IItemStack`, `WrapperBlockEntity`, etc.).
 - External lookups (other mods): standard NeoForge `level.getCapability(cap, pos, side)`. For this to work, **call `ModuleCapabilities.registerBlockEntity(event, type)` for every `BlockEntityCore` type** from a `RegisterCapabilitiesEvent` listener (mod bus). It registers every module's block capability plus `STANDARD`, all routed to `BlockEntityCore#getCapability`.

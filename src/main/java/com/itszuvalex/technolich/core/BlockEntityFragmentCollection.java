@@ -15,7 +15,9 @@ import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, IBlockEntityBlockEventHandler, IScopedSerialization, IModuleCapabilityMap, IBlockEntityTickable {
@@ -31,6 +33,12 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
     private final @NotNull
     @Nonnull
     IBlockEntity blockEntity;
+    private final @NotNull
+    @Nonnull
+    Set<String> fragmentNames = new HashSet<>();
+    private final @NotNull
+    @Nonnull
+    Set<IModule<?>> exposedModules = new HashSet<>();
 
     public BlockEntityFragmentCollection(@NotNull @Nonnull IBlockEntity blockEntity) {
         modCapMap = new ModuleCapabilityArrayListMap();
@@ -39,12 +47,25 @@ public class BlockEntityFragmentCollection implements IBlockEntityEventHandler, 
         this.blockEntity = blockEntity;
     }
 
+    /**
+     * @throws IllegalArgumentException if a fragment with the same {@link IInternalBlockEntityFragment#name()} was
+     *                                  already added; names key each fragment's saved data, so duplicates would
+     *                                  overwrite each other.
+     */
     public void addInternalFragment(@NotNull @Nonnull IInternalBlockEntityFragment fragment) {
+        if (!fragmentNames.add(fragment.name()))
+            throw new IllegalArgumentException("Duplicate fragment name: " + fragment.name());
         modList.add(fragment);
     }
 
+    /**
+     * @throws IllegalArgumentException if the name is a duplicate, or another fragment already exposes this module.
+     */
     public <F> void addFragment(@NotNull @Nonnull IBlockEntityFragment<F> fragment) {
+        if (exposedModules.contains(fragment.module()))
+            throw new IllegalArgumentException("Module " + fragment.module().id() + " is already exposed by another fragment");
         addInternalFragment(fragment);
+        exposedModules.add(fragment.module());
         var getter = fragment.faceToModuleMapper(blockEntity);
         modCapMap.addModule(fragment.module(), getter);
     }

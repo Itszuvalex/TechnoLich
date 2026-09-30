@@ -3,6 +3,7 @@ package com.itszuvalex.technolich.api.utility;
 import com.itszuvalex.technolich.api.adapters.IModule;
 import com.itszuvalex.technolich.api.adapters.Module;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -15,7 +16,7 @@ public abstract class ModuleCapabilityMapTestBase {
 
     @BeforeAll
     public static void ClassSetup() {
-        module = Module.registerModule("TestModule", null);
+        module = Module.registerModule(Identifier.fromNamespaceAndPath("technolich_test", "module"), null);
     }
 
     @AfterAll

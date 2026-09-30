@@ -1,6 +1,7 @@
 package com.itszuvalex.technolich.api.adapters;
 
 import net.minecraft.core.Direction;
+import net.minecraft.resources.Identifier;
 import net.neoforged.neoforge.capabilities.BlockCapability;
 import net.neoforged.neoforge.capabilities.ItemCapability;
 import net.neoforged.neoforge.transfer.access.ItemAccess;
@@ -18,5 +19,8 @@ public interface IModule<T> {
      */
     Optional<ItemCapability<T, ItemAccess>> itemCapability();
 
-    String name();
+    /**
+     * @return Unique, namespaced id (e.g. {@code technolich:colorable}), so modules from different mods can't collide.
+     */
+    Identifier id();
 }

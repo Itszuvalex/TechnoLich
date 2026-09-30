@@ -21,7 +21,7 @@ class NetworkTest {
 
     @BeforeAll
     public static void ClassSetup() {
-        module = Module.registerModule("TestNetworkModule", null);
+        module = Module.registerModule(Identifier.fromNamespaceAndPath("technolich_test", "network"), null);
         networkManager = new NetworkManager();
     }
 
