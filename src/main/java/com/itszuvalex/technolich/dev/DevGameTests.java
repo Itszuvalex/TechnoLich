@@ -8,7 +8,9 @@ import net.minecraft.core.component.DataComponentPatch;
 import com.itszuvalex.technolich.api.Modules;
 import com.itszuvalex.technolich.api.adapters.IItemStack;
 import com.itszuvalex.technolich.api.adapters.ILevel;
+import com.itszuvalex.technolich.api.storage.ItemStorageArray;
 import com.itszuvalex.technolich.api.utility.Loc4;
+import com.itszuvalex.technolich.api.wrappers.WrapperResourceHandlerIItemStorage;
 import com.itszuvalex.technolich.api.wrappers.WrapperBlockEntity;
 import com.itszuvalex.technolich.api.adapters.IColorable;
 import net.minecraft.core.BlockPos;
@@ -49,7 +51,8 @@ public final class DevGameTests {
             TEST_FUNCTIONS.register("drops_inventory_on_break", () -> DevGameTests::dropsInventoryOnBreak),
             TEST_FUNCTIONS.register("level_lookup_returns_core", () -> DevGameTests::levelLookupReturnsCore),
             TEST_FUNCTIONS.register("inventory_change_marks_dirty", () -> DevGameTests::inventoryChangeMarksDirty),
-            TEST_FUNCTIONS.register("item_scope_components_round_trip", () -> DevGameTests::itemScopeComponentsRoundTrip)
+            TEST_FUNCTIONS.register("item_scope_components_round_trip", () -> DevGameTests::itemScopeComponentsRoundTrip),
+            TEST_FUNCTIONS.register("resource_handler_per_slot_limit", () -> DevGameTests::resourceHandlerPerSlotLimit)
     );
 
     private DevGameTests() {
@@ -214,6 +217,40 @@ public final class DevGameTests {
 
         helper.assertValueEqual(color, placed.colorable.getColor(), "color from item");
         helper.assertTrue(placed.inventory.get(0).isEmpty(), "Inventory is LEVEL scope only and must not ride on the item");
+        helper.succeed();
+    }
+
+    /**
+     * The item ResourceHandler adapter must respect IItemStorage's per-slot limit and notify only on commit.
+     */
+    private static void resourceHandlerPerSlotLimit(GameTestHelper helper) {
+        var changes = new int[1];
+        var storage = new ItemStorageArray(2, () -> changes[0]++) {
+            @Override
+            public int maxStackSize(int index) {
+                return index == 0 ? 4 : super.maxStackSize(index);
+            }
+        };
+        var handler = WrapperResourceHandlerIItemStorage.of(storage);
+        var diamond = ItemResource.of(Items.DIAMOND);
+
+        helper.assertValueEqual(4L, handler.getCapacityAsLong(0, diamond), "slot 0 capacity");
+        helper.assertValueEqual(64L, handler.getCapacityAsLong(1, diamond), "slot 1 capacity");
+
+        try (var tx = Transaction.openRoot()) {
+            helper.assertValueEqual(4, handler.insert(0, diamond, 10, tx), "inserted into limited slot");
+        }
+        helper.assertValueEqual(0, changes[0], "aborted transaction notified");
+        helper.assertTrue(storage.get(0).isEmpty(), "aborted transaction not rolled back");
+
+        try (var tx = Transaction.openRoot()) {
+            handler.insert(0, diamond, 10, tx);
+            handler.insert(1, diamond, 10, tx);
+            tx.commit();
+        }
+        helper.assertValueEqual(4, storage.get(0).stackSize(), "limited slot count");
+        helper.assertValueEqual(10, storage.get(1).stackSize(), "unlimited slot count");
+        helper.assertValueEqual(1, changes[0], "notifications on commit");
         helper.succeed();
     }
 }

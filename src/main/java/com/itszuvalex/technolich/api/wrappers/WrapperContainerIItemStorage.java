@@ -10,7 +10,11 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nonnull;
 import java.util.stream.IntStream;
 
-//TODO Make sure this is correct
+/**
+ * Exposes an {@link IItemStorage} as a vanilla {@link Container}, e.g. for menus.  For capabilities use
+ * {@link WrapperResourceHandlerIItemStorage}, which also honours per-slot stack limits ({@code Container} has only a
+ * container-wide limit).
+ */
 public class WrapperContainerIItemStorage implements Container {
     private @NotNull
     @Nonnull
@@ -71,9 +75,13 @@ public class WrapperContainerIItemStorage implements Container {
         return storage.canInsert(slot, IItemStack.of(stack));
     }
 
+    /**
+     * The wrapper doesn't know where its storage lives; menus over a block entity should check
+     * {@link Container#stillValidBlockEntity} themselves.
+     */
     @Override
     public boolean stillValid(Player p_18946_) {
-        return false;
+        return true;
     }
 
     @Override

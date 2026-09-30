@@ -113,7 +113,7 @@ Each fragment writes into its own child keyed by `name()` under the `frags` key.
 
 ### NeoForge transfer API adapters
 NeoForge 26.1 replaced `IItemHandler`/`IEnergyStorage` with transactional `ResourceHandler<ItemResource>` and `EnergyHandler`.
-- TechnoLich → NeoForge: `WrapperResourceHandlerIItemStorage.of(storage)` (via `WrapperContainerIItemStorage` + NeoForge `VanillaContainerWrapper`), `new WrapperEnergyHandlerIBattery(battery)` (snapshot journal; energy is truncated to whole units). Create once per block entity and return the same instance from capability providers.
+- TechnoLich → NeoForge: `WrapperResourceHandlerIItemStorage.of(storage)` (one NeoForge `ItemStackResourceHandler` per slot; honours `canInsert` and per-slot `maxStackSize`), `new WrapperEnergyHandlerIBattery(battery)` (snapshot journal; energy is truncated to whole units). Create once per block entity and return the same instance from capability providers.
 - NeoForge → TechnoLich: `ItemStorageResourceHandler`, `BatteryEnergyHandler`. Their mutators open **root** transactions, so never call them while a transaction is open.
 
 ### Networks
@@ -128,7 +128,7 @@ Lifecycle: `TechnoLich` forwards server `ChunkEvent.Unload` to `NetworkManager#o
 
 `dev/` registers `technolich:dev_frag_block` (colorable, 1-slot inventory exposed via `Capabilities.Item.BLOCK`, drops on break) only when `!FMLEnvironment.isProduction()`. Place it with `/setblock ~ ~ ~ technolich:dev_frag_block` in a dev client.
 
-`DevGameTests` registers test functions (`Registries.TEST_FUNCTION`) and test instances (`RegisterGameTestsEvent`) using vanilla's 1×1×1 `minecraft:empty` structure. Current tests: capability/module lookup, level save/load, client update tag, item capability insert with rollback, drops on break. Note `GameTestHelper#assertValueEqual(expected, actual, name)`: expected comes first.
+`DevGameTests` registers test functions (`Registries.TEST_FUNCTION`) and test instances (`RegisterGameTestsEvent`) using vanilla's 1×1×1 `minecraft:empty` structure. Current tests: capability/module lookup (and setColor marking dirty), level save/load, client update tag, item capability insert with rollback, drops on break, location lookups returning the core itself, inventory changes marking dirty (commit only), ITEM-scope component round trip, and the item ResourceHandler's per-slot limit. Note `GameTestHelper#assertValueEqual(expected, actual, name)`: expected comes first.
 
 ## Testing conventions
 
