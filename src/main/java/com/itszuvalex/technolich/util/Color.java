@@ -1,53 +1,38 @@
 package com.itszuvalex.technolich.util;
 
-public class Color {
-    public byte alpha;
-    public byte red;
-    public byte green;
-    public byte blue;
+/**
+ * Immutable ARGB color.  Use the {@code with*} methods to derive a changed copy.
+ */
+public record Color(byte alpha, byte red, byte green, byte blue) {
+    public static final Color TRANSPARENT = new Color(0);
 
-    public Color(byte alpha, byte red, byte green, byte blue) {
-        this.alpha = alpha;
-        this.red = red;
-        this.green = green;
-        this.blue = blue;
+    /**
+     * @param argb Packed as {@code 0xAARRGGBB}.
+     */
+    public Color(int argb) {
+        this((byte) (argb >>> 24), (byte) (argb >>> 16), (byte) (argb >>> 8), (byte) argb);
     }
 
-    public Color(int color) {
-        this(
-                (byte) (((color & (255 << 24)) >> 24) & 255),
-                (byte) (((color & (255 << 16)) >> 16) & 255),
-                (byte) (((color & (255 << 8)) >> 8) & 255),
-                (byte) (color & 255)
-        );
-    }
-
+    /**
+     * @return Packed as {@code 0xAARRGGBB}.
+     */
     public int toInt() {
-        int r1 = 0;
-        r1 += (alpha & 255) << 24;
-        r1 += (red & 255) << 16;
-        r1 += (green & 255) << 8;
-        r1 += blue & 255;
-        return r1;
+        return (alpha & 255) << 24 | (red & 255) << 16 | (green & 255) << 8 | (blue & 255);
     }
 
-    public Color setRed(byte red) {
-        this.red = red;
-        return this;
+    public Color withAlpha(byte alpha) {
+        return new Color(alpha, red, green, blue);
     }
 
-    public Color setGreen(byte green) {
-        this.green = green;
-        return this;
+    public Color withRed(byte red) {
+        return new Color(alpha, red, green, blue);
     }
 
-    public Color setBlue(byte blue) {
-        this.blue = blue;
-        return this;
+    public Color withGreen(byte green) {
+        return new Color(alpha, red, green, blue);
     }
 
-    public Color setAlpha(byte alpha) {
-        this.alpha = alpha;
-        return this;
+    public Color withBlue(byte blue) {
+        return new Color(alpha, red, green, blue);
     }
 }

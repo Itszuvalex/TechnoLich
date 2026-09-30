@@ -80,7 +80,7 @@ src/test/java/...              JUnit tests + Testable* fakes that avoid vanilla 
 ### Fragments and BlockEntityCore
 A `BlockEntityCore` owns a `BlockEntityFragmentCollection` (`fragList`). Behaviour is composed by adding fragments in the block entity constructor:
 
-- `fragList.addFragment(IBlockEntityFragment<T>)`: a fragment that *exposes* a module `T` (e.g. `FragColorable` exposes `Color`). Its `faceToModuleMapper(be)` maps a nullable `Direction` to the current instance (or null). It is called on every query, so return live state.
+- `fragList.addFragment(IBlockEntityFragment<T>)`: a fragment that *exposes* a module `T` (e.g. `FragColorable` exposes itself as an `IColorable`). Its `faceToModuleMapper(be)` maps a nullable `Direction` to the current instance (or null). It is called on every query, so return live state. Expose an interface whose mutators save/sync (like `IColorable#setColor`), never a mutable value object: other mods get the same object through the capability.
 - `fragList.addInternalFragment(IInternalBlockEntityFragment)`: hooks without an exposed module (serialization, `onRemove`, e.g. `FragDropInventory`).
 - Fragment `name()`s must be unique per block entity (they key saved data), and each module may be exposed by only one fragment; both throw `IllegalArgumentException` otherwise.
 - Each fragment gets an `IFragmentHost` through `onAttach` when added (`BlockEntityCore` is the host). Fragments extending `InternalBlockEntityFragment`/`BlockEntityFragment` call `markDirty()` after changing saved state and `markDirtyAndSync()` after changing client-visible (DESCRIPTION) state; the latter also sends a block update to clients.

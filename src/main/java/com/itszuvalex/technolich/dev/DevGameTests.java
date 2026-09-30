@@ -7,7 +7,7 @@ import com.itszuvalex.technolich.api.adapters.IItemStack;
 import com.itszuvalex.technolich.api.adapters.ILevel;
 import com.itszuvalex.technolich.api.utility.Loc4;
 import com.itszuvalex.technolich.api.wrappers.WrapperBlockEntity;
-import com.itszuvalex.technolich.util.Color;
+import com.itszuvalex.technolich.api.adapters.IColorable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.FunctionGameTestInstance;
@@ -72,11 +72,15 @@ public final class DevGameTests {
         var level = helper.getLevel();
         var pos = helper.absolutePos(POS);
 
-        Color color = level.getCapability(Capabilities.COLORABLE, pos, null);
-        helper.assertTrue(color != null, "COLORABLE capability missing");
-        color.red = 42;
-        helper.assertValueEqual(color, be.getModule(Modules.COLORABLE, null).orElseThrow(), "BlockEntityCore#getModule");
-        helper.assertValueEqual(color, new WrapperBlockEntity(be).getModule(Modules.COLORABLE, null).orElseThrow(),
+        IColorable colorable = level.getCapability(Capabilities.COLORABLE, pos, null);
+        helper.assertTrue(colorable != null, "COLORABLE capability missing");
+        var chunk = level.getChunkAt(pos);
+        chunk.tryMarkSaved();
+        var color = colorable.getColor().withRed((byte) 42);
+        colorable.setColor(color);
+        helper.assertTrue(chunk.isUnsaved(), "setColor through the capability did not mark dirty");
+        helper.assertValueEqual(color, be.getModule(Modules.COLORABLE, null).orElseThrow().getColor(), "BlockEntityCore#getModule");
+        helper.assertValueEqual(color, new WrapperBlockEntity(be).getModule(Modules.COLORABLE, null).orElseThrow().getColor(),
                 "WrapperBlockEntity#getModule");
         helper.assertTrue(level.getCapability(net.neoforged.neoforge.capabilities.Capabilities.Energy.BLOCK, pos, null) == null,
                 "Unexposed capability should be null");
@@ -86,7 +90,7 @@ public final class DevGameTests {
     private static void levelSaveLoad(GameTestHelper helper) {
         var be = place(helper);
         var registries = helper.getLevel().registryAccess();
-        be.getModule(Modules.COLORABLE, null).orElseThrow().green = 7;
+        be.colorable.setColor(be.colorable.getColor().withGreen((byte) 7));
         be.inventory.setSlot(0, IItemStack.of(new ItemStack(Items.DIAMOND, 3)));
 
         var tag = be.saveWithFullMetadata(registries);
@@ -94,8 +98,7 @@ public final class DevGameTests {
 
         helper.assertTrue(loaded instanceof DevFragBlockEntity, "Loaded wrong block entity: " + loaded);
         var copy = (DevFragBlockEntity) loaded;
-        helper.assertValueEqual(be.getModule(Modules.COLORABLE, null).orElseThrow().toInt(),
-                copy.getModule(Modules.COLORABLE, null).orElseThrow().toInt(), "color");
+        helper.assertValueEqual(be.colorable.getColor(), copy.colorable.getColor(), "color");
         helper.assertValueEqual(3, copy.inventory.get(0).stackSize(), "inventory count");
         helper.assertTrue(copy.inventory.get(0).toMinecraft().is(Items.DIAMOND), "inventory item");
         helper.succeed();
@@ -104,14 +107,14 @@ public final class DevGameTests {
     private static void clientUpdateTag(GameTestHelper helper) {
         var be = place(helper);
         var registries = helper.getLevel().registryAccess();
-        be.getModule(Modules.COLORABLE, null).orElseThrow().blue = 99;
+        be.colorable.setColor(be.colorable.getColor().withBlue((byte) 99));
         be.inventory.setSlot(0, IItemStack.of(new ItemStack(Items.DIAMOND)));
 
         var tag = be.getUpdateTag(registries);
         var client = new DevFragBlockEntity(be.getBlockPos(), be.getBlockState());
         client.handleUpdateTag(TagValueInput.create(ProblemReporter.DISCARDING, registries, tag));
 
-        helper.assertValueEqual((byte) 99, client.getModule(Modules.COLORABLE, null).orElseThrow().blue, "synced color");
+        helper.assertValueEqual((byte) 99, client.getModule(Modules.COLORABLE, null).orElseThrow().getColor().blue(), "synced color");
         helper.assertTrue(client.inventory.get(0).isEmpty(), "Inventory is LEVEL scope only and must not sync");
         helper.succeed();
     }
