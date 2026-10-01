@@ -52,7 +52,7 @@ open class BlockEntityCore(type: BlockEntityType<*>, pos: BlockPos, state: Block
 
     override fun toMinecraft(): BlockEntity = this
 
-    override fun blockEntity(): IBlockEntity = this
+    override val blockEntity: IBlockEntity get() = this
 
     override fun markDirty() = setChanged()
 

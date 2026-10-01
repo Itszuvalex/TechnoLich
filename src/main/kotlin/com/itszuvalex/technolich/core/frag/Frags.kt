@@ -20,29 +20,32 @@ import net.minecraft.world.level.storage.ValueOutput
  * Gives a block entity a color, exposed on every side through [Modules.COLORABLE]. Setting it saves and syncs to
  * clients. Persisted in every scope as `color` (packed ARGB int).
  */
-class FragColorable @JvmOverloads constructor(private var color: Color = Color.TRANSPARENT) :
+class FragColorable @JvmOverloads constructor(initial: Color = Color.TRANSPARENT) :
     BlockEntityFragment<IColorable>(), IColorable {
-    override fun getColor(): Color = color
+    private var current: Color = initial
 
-    override fun setColor(color: Color) {
-        if (color == this.color) return
-        this.color = color
-        markDirtyAndSync()
-    }
+    override var color: Color
+        get() = current
+        set(value) {
+            if (value == current) return
+            current = value
+            markDirtyAndSync()
+        }
 
-    override fun serializeTo(scope: NBTSerializationScope, output: ValueOutput) = output.putInt(COLOR_TAG, color.toInt())
+    override fun serializeTo(scope: NBTSerializationScope, output: ValueOutput) = output.putInt(COLOR_TAG, current.toInt())
 
     override fun deserialize(input: ValueInput, scope: NBTSerializationScope) {
-        color = Color(input.getIntOr(COLOR_TAG, 0))
+        // Loading is not a change: no dirty mark or sync.
+        current = Color(input.getIntOr(COLOR_TAG, 0))
     }
 
     override fun handlesScope(scope: NBTSerializationScope): Boolean = true
 
-    override fun module(): IModule<IColorable> = Modules.COLORABLE
+    override val module: IModule<IColorable> get() = Modules.COLORABLE
 
     override fun faceToModuleMapper(be: IBlockEntity): (Direction?) -> IColorable? = { this }
 
-    override fun name(): String = "Colorable"
+    override val name: String get() = "Colorable"
 
     companion object {
         const val COLOR_TAG = "color"
@@ -62,7 +65,7 @@ class FragDropInventory @JvmOverloads constructor(
     @JvmField
     var shouldDrop = true
 
-    override fun name(): String = NAME
+    override val name: String get() = NAME
 
     override fun onRemove(level: ILevel, pos: BlockPos, blockStatePrev: BlockState) {
         if (!shouldDrop) return

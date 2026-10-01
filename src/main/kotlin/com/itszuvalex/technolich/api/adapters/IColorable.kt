@@ -7,10 +7,8 @@ import com.itszuvalex.technolich.util.Color
  * [com.itszuvalex.technolich.api.Capabilities.COLORABLE] capability.
  */
 interface IColorable {
-    fun getColor(): Color
-
     /**
-     * Implementations persist and sync the change as needed.
+     * Setting it persists and syncs the change as needed.
      */
-    fun setColor(color: Color)
+    var color: Color
 }

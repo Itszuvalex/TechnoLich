@@ -122,7 +122,7 @@ class DevFragBlockEntity(pos: BlockPos, state: BlockState) : BlockEntityCore(Dev
         fragList.addFragment(colorable)
         fragList.addInternalFragment(FragDropInventory(inventory))
         fragList.addInternalFragment(object : InternalBlockEntityFragment() {
-            override fun name(): String = "Inventory"
+            override val name: String get() = "Inventory"
             override fun handlesScope(scope: NBTSerializationScope): Boolean = scope == NBTSerializationScope.LEVEL
             override fun serializeTo(scope: NBTSerializationScope, output: ValueOutput) = inventory.serialize(output)
             override fun deserialize(input: ValueInput, scope: NBTSerializationScope) = inventory.deserialize(input)

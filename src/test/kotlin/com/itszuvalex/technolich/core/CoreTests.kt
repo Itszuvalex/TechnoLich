@@ -40,10 +40,9 @@ class TestableNetworkNodeBlockEntity(private val pos: BlockPos, private val leve
  * Records dirty/sync requests from fragments.
  */
 class TestableFragmentHost : IFragmentHost {
-    val blockEntity: IBlockEntity = TestableNetworkNodeBlockEntity(BlockPos.ZERO, TestableLevel(TestableLoc4.DEFAULT_DIM))
+    override val blockEntity: IBlockEntity = TestableNetworkNodeBlockEntity(BlockPos.ZERO, TestableLevel(TestableLoc4.DEFAULT_DIM))
     var dirtyCount = 0
     var syncCount = 0
-    override fun blockEntity(): IBlockEntity = blockEntity
     override fun markDirty() {
         dirtyCount++
     }
@@ -66,7 +65,7 @@ class TestableNetwork(
     var takenOverBy: TestableNetwork? = null
 
     override fun create(): TestableNetwork = TestableNetwork(manager.getNextID(), module, manager, level)
-    override fun levelFor(dimension: Identifier): ILevel? = level?.takeIf { it.dimensionLocation() == dimension }
+    override fun levelFor(dimension: Identifier): ILevel? = level?.takeIf { it.dimensionId == dimension }
     override fun networkModule(): IModule<TestableNetworkNode> = module
     override fun register() = manager.addNetwork(this)
     override fun unregister() = manager.removeNetwork(this)
@@ -112,18 +111,18 @@ class BlockEntityFragmentCollectionTest {
 
     private fun collection() = BlockEntityFragmentCollection(TestableFragmentHost())
 
-    private fun internal(name: String) = object : InternalBlockEntityFragment() {
-        override fun name(): String = name
+    private fun internal(fragmentName: String) = object : InternalBlockEntityFragment() {
+        override val name: String = fragmentName
     }
 
-    private fun exposing(name: String, value: String) = object : BlockEntityFragment<String>() {
-        override fun name(): String = name
-        override fun module(): IModule<String> = this@BlockEntityFragmentCollectionTest.module
+    private fun exposing(fragmentName: String, value: String) = object : BlockEntityFragment<String>() {
+        override val name: String = fragmentName
+        override val module: IModule<String> = this@BlockEntityFragmentCollectionTest.module
         override fun faceToModuleMapper(be: IBlockEntity): (Direction?) -> String? = { value }
     }
 
     private class Dirtying : InternalBlockEntityFragment() {
-        override fun name(): String = "Dirtying"
+        override val name: String = "Dirtying"
         fun change() {
             markDirty()
             markDirtyAndSync()
@@ -175,8 +174,8 @@ class FragColorableTest {
         val host = TestableFragmentHost()
         val frag = FragColorable()
         frag.onAttach(host)
-        frag.setColor(Color(0xFF00FF00.toInt()))
-        Assertions.assertEquals(Color(0xFF00FF00.toInt()), frag.getColor())
+        frag.color = Color(0xFF00FF00.toInt())
+        Assertions.assertEquals(Color(0xFF00FF00.toInt()), frag.color)
         Assertions.assertEquals(1, host.syncCount)
     }
 
@@ -185,7 +184,7 @@ class FragColorableTest {
         val host = TestableFragmentHost()
         val frag = FragColorable(Color(0xFF00FF00.toInt()))
         frag.onAttach(host)
-        frag.setColor(Color(0xFF00FF00.toInt()))
+        frag.color = Color(0xFF00FF00.toInt())
         Assertions.assertEquals(0, host.dirtyCount)
     }
 }

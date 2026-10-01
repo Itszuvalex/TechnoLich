@@ -65,7 +65,7 @@ fun interface IBlockEntityTickable {
  * [IInternalBlockEntityFragment.onAttach] when it is added to a [BlockEntityFragmentCollection].
  */
 interface IFragmentHost {
-    fun blockEntity(): IBlockEntity
+    val blockEntity: IBlockEntity
 
     /**
      * Marks the block entity as changed so it is saved. Call after changing LEVEL-scope state.
@@ -87,7 +87,7 @@ interface IInternalBlockEntityFragment : IFragmentLifecycle, IScopedSerializatio
     /**
      * Unique within the block entity; keys this fragment's saved data.
      */
-    fun name(): String
+    val name: String
 
     /**
      * Called once when the fragment is added to its block entity's fragment collection.
@@ -105,7 +105,7 @@ interface IInternalBlockEntityFragment : IFragmentLifecycle, IScopedSerializatio
  * A fragment that exposes a module [T].
  */
 interface IBlockEntityFragment<T : Any> : IInternalBlockEntityFragment {
-    fun module(): IModule<T>
+    val module: IModule<T>
 
     /**
      * @return Maps a nullable side to the module instance exposed on that side, or null if not exposed there.
@@ -131,7 +131,7 @@ class BlockEntityFragmentCollection(private val host: IFragmentHost) :
      * added; names key each fragment's saved data, so duplicates would overwrite each other.
      */
     fun addInternalFragment(fragment: IInternalBlockEntityFragment) {
-        require(fragmentNames.add(fragment.name())) { "Duplicate fragment name: ${fragment.name()}" }
+        require(fragmentNames.add(fragment.name)) { "Duplicate fragment name: ${fragment.name}" }
         modList.add(fragment)
         fragment.onAttach(host)
     }
@@ -140,10 +140,10 @@ class BlockEntityFragmentCollection(private val host: IFragmentHost) :
      * @throws IllegalArgumentException if the name is a duplicate, or another fragment already exposes this module.
      */
     fun <F : Any> addFragment(fragment: IBlockEntityFragment<F>) {
-        require(fragment.module() !in exposedModules) { "Module ${fragment.module().id} is already exposed by another fragment" }
+        require(fragment.module !in exposedModules) { "Module ${fragment.module.id} is already exposed by another fragment" }
         addInternalFragment(fragment)
-        exposedModules.add(fragment.module())
-        modCapMap.addModule(fragment.module(), fragment.faceToModuleMapper(host.blockEntity()))
+        exposedModules.add(fragment.module)
+        modCapMap.addModule(fragment.module, fragment.faceToModuleMapper(host.blockEntity))
     }
 
     /**
@@ -169,11 +169,11 @@ class BlockEntityFragmentCollection(private val host: IFragmentHost) :
         tickList.forEach { it.tick(level, blockPos, blockState) }
 
     override fun serializeTo(scope: NBTSerializationScope, output: ValueOutput) =
-        modList.filter { it.handlesScope(scope) }.forEach { it.serializeTo(scope, output.child(it.name())) }
+        modList.filter { it.handlesScope(scope) }.forEach { it.serializeTo(scope, output.child(it.name)) }
 
     override fun deserialize(input: ValueInput, scope: NBTSerializationScope) =
         modList.filter { it.handlesScope(scope) }.forEach { frag ->
-            input.child(frag.name()).ifPresent { frag.deserialize(it, scope) }
+            input.child(frag.name).ifPresent { frag.deserialize(it, scope) }
         }
 
     override fun handlesScope(scope: NBTSerializationScope): Boolean = modList.any { it.handlesScope(scope) }

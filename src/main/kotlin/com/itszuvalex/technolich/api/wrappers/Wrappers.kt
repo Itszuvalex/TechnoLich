@@ -51,9 +51,9 @@ class WrapperCache<C : Any, W : Any>(cap: Int, loader: (C) -> W) {
 }
 
 class WrapperLevel(private val level: Level) : ILevel {
-    override fun isClientSide(): Boolean = level.isClientSide
-    override fun dimension(): ResourceKey<Level> = level.dimension()
-    override fun dimensionLocation(): Identifier = dimension().identifier()
+    override val isClientSide: Boolean get() = level.isClientSide
+    override val dimension: ResourceKey<Level> get() = level.dimension()
+    override val dimensionId: Identifier get() = dimension.identifier()
     override fun toMinecraft(): Level = level
     override fun isLoaded(pos: BlockPos): Boolean = level.isLoaded(pos)
     override fun getIBlockEntity(pos: BlockPos): IBlockEntity? = level.getBlockEntity(pos)?.let(IBlockEntity::of)

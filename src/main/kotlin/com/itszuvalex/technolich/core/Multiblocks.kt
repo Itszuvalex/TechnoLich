@@ -312,11 +312,11 @@ class FragMultiblockPart(override val candidateRoles: List<MultiblockRoleRef>) :
         markDirty()
     }
 
-    override fun module(): IModule<IMultiblockMember> = Modules.MULTIBLOCK_MEMBER
+    override val module: IModule<IMultiblockMember> get() = Modules.MULTIBLOCK_MEMBER
 
     override fun faceToModuleMapper(be: IBlockEntity): (Direction?) -> IMultiblockMember? = { this }
 
-    override fun name(): String = NAME
+    override val name: String get() = NAME
 
     override fun handlesScope(scope: NBTSerializationScope): Boolean = scope == NBTSerializationScope.LEVEL
 
@@ -343,17 +343,17 @@ class FragMultiblockPart(override val candidateRoles: List<MultiblockRoleRef>) :
     }
 
     override fun onLoad(level: ILevel, pos: BlockPos) {
-        if (level.isClientSide()) return
+        if (level.isClientSide) return
         manager()?.onPartLoaded(level, pos, this)
     }
 
     override fun onChunkUnloaded(level: ILevel, pos: BlockPos) {
-        if (level.isClientSide()) return
+        if (level.isClientSide) return
         manager()?.onPartUnloaded(this)
     }
 
     override fun onRemove(level: ILevel, pos: BlockPos, blockStatePrev: BlockState) {
-        if (level.isClientSide()) return
+        if (level.isClientSide) return
         manager()?.onPartRemoved(level, pos, this)
     }
 

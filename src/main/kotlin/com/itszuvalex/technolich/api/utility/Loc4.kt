@@ -32,7 +32,7 @@ data class Loc4(val dimensionId: Identifier, val pos: BlockPos) : Comparable<Loc
      */
     @JvmOverloads
     fun getIBlockEntity(level: ILevel, force: Boolean = false): IBlockEntity? {
-        require(level.dimensionLocation() == dimensionId) { "$this looked up in ${level.dimensionLocation()}" }
+        require(level.dimensionId == dimensionId) { "$this looked up in ${level.dimensionId}" }
         return if (force || level.isLoaded(pos)) level.getIBlockEntity(pos) else null
     }
 
@@ -77,7 +77,7 @@ data class Loc4(val dimensionId: Identifier, val pos: BlockPos) : Comparable<Loc
         fun of(level: Level, pos: BlockPos): Loc4 = Loc4(level.dimension().identifier(), pos)
 
         @JvmStatic
-        fun of(level: ILevel, pos: BlockPos): Loc4 = Loc4(level.dimensionLocation(), pos)
+        fun of(level: ILevel, pos: BlockPos): Loc4 = Loc4(level.dimensionId, pos)
 
         const val X_KEY = "x"
         const val Y_KEY = "y"

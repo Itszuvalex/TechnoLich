@@ -408,7 +408,7 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
     override fun onTickEnd() {}
 
     override fun onChunkUnload(level: ILevel, chunk: ChunkCoord) {
-        removeNodes(locationTracker.getTrackedLocationsInChunk(level.dimensionLocation(), chunk).toList().asSequence().mapNotNull { nodeMap[it] })
+        removeNodes(locationTracker.getTrackedLocationsInChunk(level.dimensionId, chunk).toList().asSequence().mapNotNull { nodeMap[it] })
     }
 
     /**

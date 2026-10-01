@@ -98,11 +98,11 @@ object DevGameTests {
         helper.assertTrue(colorable != null, "COLORABLE capability missing")
         val chunk = level.getChunkAt(pos)
         chunk.tryMarkSaved()
-        val color = colorable!!.getColor().withRed(42)
-        colorable.setColor(color)
+        val color = colorable!!.color.withRed(42)
+        colorable.color = color
         helper.assertTrue(chunk.isUnsaved, "setColor through the capability did not mark dirty")
-        helper.assertValueEqual(color, be.getModule(Modules.COLORABLE, null)!!.getColor(), "BlockEntityCore#getModule")
-        helper.assertValueEqual(color, WrapperBlockEntity(be).getModule(Modules.COLORABLE, null)!!.getColor(), "WrapperBlockEntity#getModule")
+        helper.assertValueEqual(color, be.getModule(Modules.COLORABLE, null)!!.color, "BlockEntityCore#getModule")
+        helper.assertValueEqual(color, WrapperBlockEntity(be).getModule(Modules.COLORABLE, null)!!.color, "WrapperBlockEntity#getModule")
         helper.assertTrue(level.getCapability(NeoCapabilities.Energy.BLOCK, pos, null) == null, "Unexposed capability should be null")
         helper.succeed()
     }
@@ -110,7 +110,7 @@ object DevGameTests {
     private fun levelSaveLoad(helper: GameTestHelper) {
         val be = place(helper)
         val registries = helper.level.registryAccess()
-        be.colorable.setColor(be.colorable.getColor().withGreen(7))
+        be.colorable.color = be.colorable.color.withGreen(7)
         be.inventory.setSlot(0, IItemStack.of(ItemStack(Items.DIAMOND, 3)))
 
         val tag = be.saveWithFullMetadata(registries)
@@ -118,7 +118,7 @@ object DevGameTests {
 
         helper.assertTrue(loaded is DevFragBlockEntity, "Loaded wrong block entity: $loaded")
         val copy = loaded as DevFragBlockEntity
-        helper.assertValueEqual(be.colorable.getColor(), copy.colorable.getColor(), "color")
+        helper.assertValueEqual(be.colorable.color, copy.colorable.color, "color")
         helper.assertValueEqual(3, copy.inventory.get(0).stackSize, "inventory count")
         helper.assertTrue(copy.inventory.get(0).toMinecraft().`is`(Items.DIAMOND), "inventory item")
         helper.succeed()
@@ -127,14 +127,14 @@ object DevGameTests {
     private fun clientUpdateTag(helper: GameTestHelper) {
         val be = place(helper)
         val registries = helper.level.registryAccess()
-        be.colorable.setColor(be.colorable.getColor().withBlue(99))
+        be.colorable.color = be.colorable.color.withBlue(99)
         be.inventory.setSlot(0, IItemStack.of(ItemStack(Items.DIAMOND)))
 
         val tag = be.getUpdateTag(registries)
         val client = DevFragBlockEntity(be.blockPos, be.blockState)
         client.handleUpdateTag(TagValueInput.create(ProblemReporter.DISCARDING, registries, tag))
 
-        helper.assertValueEqual(99.toByte(), client.getModule(Modules.COLORABLE, null)!!.getColor().blue, "synced color")
+        helper.assertValueEqual(99.toByte(), client.getModule(Modules.COLORABLE, null)!!.color.blue, "synced color")
         helper.assertTrue(client.inventory.get(0).isEmpty, "Inventory is LEVEL scope only and must not sync")
         helper.succeed()
     }
@@ -212,7 +212,7 @@ object DevGameTests {
     private fun itemScopeComponentsRoundTrip(helper: GameTestHelper) {
         val be = place(helper)
         val color = Color(0xFF123456.toInt())
-        be.colorable.setColor(color)
+        be.colorable.color = color
         be.inventory.setSlot(0, IItemStack.of(ItemStack(Items.DIAMOND)))
 
         val components = be.collectComponents()
@@ -221,7 +221,7 @@ object DevGameTests {
         val placed = DevFragBlockEntity(be.blockPos, be.blockState)
         placed.applyComponents(components, DataComponentPatch.EMPTY)
 
-        helper.assertValueEqual(color, placed.colorable.getColor(), "color from item")
+        helper.assertValueEqual(color, placed.colorable.color, "color from item")
         helper.assertTrue(placed.inventory.get(0).isEmpty, "Inventory is LEVEL scope only and must not ride on the item")
         helper.succeed()
     }

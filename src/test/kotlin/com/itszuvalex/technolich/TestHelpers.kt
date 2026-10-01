@@ -58,12 +58,11 @@ object TestIO {
     fun read(tag: CompoundTag): ValueInput = TagValueInput.create(ProblemReporter.DISCARDING, RegistryAccess.EMPTY, tag)
 }
 
-class TestableLevel(private val dimension: Identifier) : ILevel {
+class TestableLevel(override val dimensionId: Identifier) : ILevel {
     private val blockEntityMap = HashMap<BlockPos, IBlockEntity>()
 
-    override fun isClientSide(): Boolean = false
-    override fun dimension(): ResourceKey<Level> = MCAssert.failVanillaClass("dimension")
-    override fun dimensionLocation(): Identifier = dimension
+    override val isClientSide: Boolean get() = false
+    override val dimension: ResourceKey<Level> get() = MCAssert.failVanillaClass("dimension")
     override fun toMinecraft(): Level = MCAssert.failVanillaClass("toMinecraft")
     override fun isLoaded(pos: BlockPos): Boolean = true
     override fun getIBlockEntity(pos: BlockPos): IBlockEntity? = blockEntityMap[pos]

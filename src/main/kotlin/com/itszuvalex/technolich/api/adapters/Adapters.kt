@@ -27,11 +27,11 @@ interface IBlockEntity : IModuleProvider {
  * Engine seam over [Level].
  */
 interface ILevel {
-    fun isClientSide(): Boolean
+    val isClientSide: Boolean
 
-    fun dimension(): ResourceKey<Level>
+    val dimension: ResourceKey<Level>
 
-    fun dimensionLocation(): Identifier
+    val dimensionId: Identifier
 
     fun toMinecraft(): Level
 
