@@ -3,12 +3,11 @@ package com.itszuvalex.technolich.api.wrappers
 import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
 import com.google.common.cache.LoadingCache
-import com.itszuvalex.technolich.api.adapters.IBattery
 import com.itszuvalex.technolich.api.adapters.IBlockEntity
 import com.itszuvalex.technolich.api.adapters.IItemStack
 import com.itszuvalex.technolich.api.adapters.ILevel
 import com.itszuvalex.technolich.api.adapters.IModule
-import com.itszuvalex.technolich.api.adapters.IModuleProvider
+import com.itszuvalex.technolich.api.storage.IBattery
 import com.itszuvalex.technolich.api.storage.IItemStorage
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -71,22 +70,17 @@ class WrapperLevel(private val level: Level) : ILevel {
 }
 
 /**
- * Resolves modules on an arbitrary BlockEntity through the NeoForge block capability system.
+ * An arbitrary BlockEntity (not a [com.itszuvalex.technolich.core.BlockEntityCore]). Modules resolve through the
+ * NeoForge block capability system, so only modules with a [IModule.blockCapability] are reachable.
  */
-class WrapperCapabilityProvider(private val blockEntity: BlockEntity) : IModuleProvider {
-    override fun <T : Any> getModule(module: IModule<T>, side: Direction?): T? {
-        val level = blockEntity.level ?: return null
-        val cap = module.blockCapability ?: return null
-        return level.getCapability(cap, blockEntity.blockPos, blockEntity.blockState, blockEntity, side)
-    }
-}
-
 class WrapperBlockEntity(private val entity: BlockEntity) : IBlockEntity {
-    private val capabilityProvider = WrapperCapabilityProvider(entity)
-
     override fun getBlockPos(): BlockPos = entity.blockPos
     override fun toMinecraft(): BlockEntity = entity
-    override fun <T : Any> getModule(module: IModule<T>, side: Direction?): T? = capabilityProvider.getModule(module, side)
+    override fun <T : Any> getModule(module: IModule<T>, side: Direction?): T? {
+        val level = entity.level ?: return null
+        val cap = module.blockCapability ?: return null
+        return level.getCapability(cap, entity.blockPos, entity.blockState, entity, side)
+    }
 }
 
 class WrapperVanillaItemStack(private val stack: ItemStack) : IItemStack {

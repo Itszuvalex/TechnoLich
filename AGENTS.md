@@ -62,9 +62,9 @@ src/main/kotlin/com/itszuvalex/technolich/
 │   ├── Api.kt             Capabilities (COLORABLE), Modules (COLORABLE; Modules.init()), Components
 │   │                      (FRAGMENT_DATA = technolich:fragment_data), ModuleCapabilities (registers a
 │   │                      BlockEntityCore type's modules + STANDARD NeoForge caps)
-│   ├── adapters/          IModule.kt (IModule, IModuleProvider, Module), Adapters.kt (IBlockEntity, ILevel,
-│   │                      IBattery), IItemStack.kt, IColorable.kt
-│   ├── storage/           IItemStorage.kt; ItemStorages.kt (Array, Slice, Aggregate, Dynamic, NBT,
+│   ├── adapters/          IModule.kt (IModule, IModuleProvider, Module), Adapters.kt (IBlockEntity, ILevel),
+│   │                      IItemStack.kt, IColorable.kt
+│   ├── storage/           IItemStorage.kt, IBattery.kt; ItemStorages.kt (Array, Slice, Aggregate, Dynamic, NBT,
 │   │                      ResourceHandler-backed); Batteries.kt (PowerBattery, PowerBatteryNBT,
 │   │                      DynamicIBattery, BatteryEnergyHandler)
 │   ├── utility/           Loc4 (+Level/ILevel/Indirect), ChunkCoord, LocationTracker, DirectionUtil,

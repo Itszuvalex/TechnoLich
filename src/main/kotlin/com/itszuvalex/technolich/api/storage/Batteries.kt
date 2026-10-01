@@ -1,6 +1,5 @@
 package com.itszuvalex.technolich.api.storage
 
-import com.itszuvalex.technolich.api.adapters.IBattery
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput

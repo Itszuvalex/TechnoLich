@@ -58,7 +58,7 @@ abstract class Loc4(val pos: BlockPos) : Comparable<Loc4> {
     }
 
     fun dist(other: Loc4): Double {
-        if (other.dimensionId != dimensionId) return Float.MAX_VALUE.toDouble()
+        if (other.dimensionId != dimensionId) return Double.MAX_VALUE
         return dist(other.x, other.y, other.z)
     }
 
