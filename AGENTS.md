@@ -84,7 +84,7 @@ src/main/kotlin/com/itszuvalex/technolich/
 ├── dev/                   DevContent.kt (dev-only blocks + block entities, DevShapes), DevGameTests.kt; never
 │                          registered in production
 ├── network/PacketHandler.kt Thin wrapper over NeoForge's PayloadRegistrar (no payloads yet)
-└── util/                  Color, InventoryUtils.kt (item dropping, Singleton)
+└── util/                  Color, InventoryUtils.kt (item dropping)
 src/test/kotlin/...        JUnit tests; fakes in TestHelpers.kt (TestableLevel, TestableIItemStack, TestableLoc4,
                            MCAssert, TestIO), core/CoreTests.kt (TestableNetwork*, TestableFragmentHost), and
                            core/MultiblockTests.kt (TestableMultiblockBlockEntity)

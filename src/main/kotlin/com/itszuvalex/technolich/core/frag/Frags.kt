@@ -9,7 +9,7 @@ import com.itszuvalex.technolich.api.adapters.IModule
 import com.itszuvalex.technolich.api.storage.IItemStorage
 import com.itszuvalex.technolich.api.utility.NBTSerializationScope
 import com.itszuvalex.technolich.util.Color
-import com.itszuvalex.technolich.util.IInventoryUtils
+import com.itszuvalex.technolich.util.InventoryUtils
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.block.state.BlockState
@@ -52,8 +52,13 @@ class FragColorable @JvmOverloads constructor(private var color: Color = Color.T
 /**
  * Drops [storage]'s contents when the block is removed (server side, only when the block actually changes), then
  * clears it.
+ *
+ * @param drop Drops one stack into the world; replaceable for tests.
  */
-class FragDropInventory(private val storage: IItemStorage) : InternalBlockEntityFragment() {
+class FragDropInventory @JvmOverloads constructor(
+    private val storage: IItemStorage,
+    private val drop: (ILevel, BlockPos, IItemStack) -> Unit = InventoryUtils::dropItem,
+) : InternalBlockEntityFragment() {
     @JvmField
     var shouldDrop = true
 
@@ -61,8 +66,10 @@ class FragDropInventory(private val storage: IItemStorage) : InternalBlockEntity
 
     override fun onRemove(level: ILevel, pos: BlockPos, blockStatePrev: BlockState) {
         if (!shouldDrop) return
-        IInventoryUtils.instance.get().dropStorage(level, pos, storage)
-        for (i in 0 until storage.size()) storage.setSlot(i, IItemStack.Empty)
+        for (i in 0 until storage.size()) {
+            drop(level, pos, storage.get(i))
+            storage.setSlot(i, IItemStack.Empty)
+        }
     }
 
     companion object {

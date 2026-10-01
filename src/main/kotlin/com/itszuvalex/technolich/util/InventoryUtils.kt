@@ -2,43 +2,16 @@ package com.itszuvalex.technolich.util
 
 import com.itszuvalex.technolich.api.adapters.IItemStack
 import com.itszuvalex.technolich.api.adapters.ILevel
-import com.itszuvalex.technolich.api.storage.IItemStorage
 import net.minecraft.core.BlockPos
 import net.minecraft.world.Containers
 
-/**
- * Lazily created instance whose factory can be swapped (e.g. by tests).
- */
-class Singleton<T : Any>(private var instanceSupplier: () -> T) {
-    private var instance: T? = null
-
-    fun get(): T = instance ?: instanceSupplier().also { instance = it }
-
-    fun reset() {
-        instance = null
-    }
-
-    fun setSupplier(supplier: () -> T) {
-        instanceSupplier = supplier
-        reset()
-    }
-}
-
-interface IInventoryUtils {
-    fun dropStorage(level: ILevel, pos: BlockPos, storage: IItemStorage) {
-        for (i in 0 until storage.size()) dropItem(level, pos, storage.get(i))
-    }
-
-    fun dropItem(level: ILevel, pos: BlockPos, item: IItemStack)
-
-    companion object {
-        @JvmField
-        val instance: Singleton<IInventoryUtils> = Singleton(::InventoryUtils)
-    }
-}
-
-class InventoryUtils : IInventoryUtils {
-    override fun dropItem(level: ILevel, pos: BlockPos, item: IItemStack) {
+object InventoryUtils {
+    /**
+     * Drops [item] into the world at [pos], scattered as vanilla does when a container block breaks. Does nothing for
+     * an empty stack.
+     */
+    @JvmStatic
+    fun dropItem(level: ILevel, pos: BlockPos, item: IItemStack) {
         if (item.isEmpty()) return
         Containers.dropItemStack(level.toMinecraft(), pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble(), item.toMinecraft())
     }
