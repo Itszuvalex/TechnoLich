@@ -83,7 +83,10 @@ src/main/kotlin/com/itszuvalex/technolich/
 │                          Frags.kt (FragColorable, FragDropInventory)
 ├── dev/                   DevContent.kt (dev-only blocks + block entities, DevShapes), DevGameTests.kt; never
 │                          registered in production
-├── network/PacketHandler.kt Thin wrapper over NeoForge's PayloadRegistrar (no payloads yet)
+├── network/PacketHandler.kt Thin wrapper over NeoForge's PayloadRegistrar
+├── team/                  Teams.kt (Team, TeamState: rules + invariants), TeamData.kt (TeamDataType, Research),
+│                          TeamCodec.kt, TeamStore.kt (file persistence), TeamManager.kt, TeamNetwork.kt (sync,
+│                          lifecycle wiring), TeamCommands.kt (/technolich team, /technolich research)
 └── util/                  Color, InventoryUtils.kt (item dropping)
 src/test/kotlin/...        JUnit tests; fakes in TestHelpers.kt (TestableLevel, TestableIItemStack, TestableLoc4,
                            MCAssert, TestIO), core/CoreTests.kt (TestableNetwork*, TestableFragmentHost), and
@@ -146,6 +149,15 @@ What breaking a member (`onRemove`) does depends on the shape's `MultiblockBreak
 - `DESTROY_ALL`: every other slot is looked up through the level (which loads its chunk) and each block still in this structure leaves and is destroyed (`Level#destroyBlock`, with drops), so no orphaned pieces remain in unloaded chunks. The removals this causes report back to `MultiblockManager` and are ignored, since the structure is already being torn down.
 
 **Known limitation** (`DISSOLVE` only): if a member is destroyed while a sibling is in an unloaded chunk, that sibling is not told, and keeps believing it belongs to a dead structure until it is itself broken. See the KDoc on `MultiblockManager` for the (deliberately not yet built) fix — a small, level-scoped record of retired structure ids.
+
+### Teams and per-team data
+Every player is always in exactly one team; a new player gets a solo team they own. Per-team data (`TeamDataType`: codec, empty value, `merge` on join, `copy` on leave) is registered in `TeamDataTypes` during mod construction; `Research` (a set of unlocked ids, merged by union) is the first. Joining unions the joiner's data into the team; leaving or being removed gives the player a solo team with a copy; disbanding gives every member a copy. Roles: one owner (promotes/demotes officers, hands over ownership, renames, disbands; cannot leave a shared team without handing it over), officers (invite, revoke invites, remove anyone but the owner), members. Joining is by invite and accept.
+
+Data integrity rules (do not weaken them):
+- `TeamState` is immutable and validated on construction (`TeamState.of`): each player in exactly one team, one owner per team, no empty teams, no self-invites. Operations return a new state or throw (`TeamException` for a refused request), so nothing is half-applied. `TeamState.repaired` fixes invalid saved data deterministically and logs each repair.
+- `TechnoLich.TEAMS` (`TeamManager`) is the only writer: `change { state -> newState }` on the server thread; it marks the data dirty and notifies listeners (the client sync).
+- Persistence is `TeamStore`, deliberately not vanilla `SavedData` (which replaces unreadable data with a fresh empty instance and later saves it over the file). Decoding is strict (`TeamCodec`): any malformed field fails the whole load. An unreadable file falls back to `teams.dat.bak` (the bad file is moved to `teams.dat.corrupt-<time>`); if both are unreadable both are left alone and the store refuses to save for the session. Saves write `teams.dat.tmp`, read it back, copy the old file to `.bak`, then atomically move. Unregistered data types are kept raw and written back.
+- Stored at `<world>/data/technolich/teams.dat`; loaded on `ServerStartingEvent`, saved on the overworld's `LevelEvent.Save` and on `ServerStoppedEvent`. Clients get their own team (`TeamSyncPayload` → `ClientTeam.current`) at login and after every change to it.
 
 ### Engine seams for testing
 `ILevel`, `IBlockEntity`, `IItemStack` and `Overideable` exist so logic can be unit tested without a running game. Tests use `TestableLevel`, `TestableIItemStack`, `TestableLoc4`, `TestableNetwork*`, `TestableFragmentHost`; `MCAssert.failVanillaClass` marks methods that must not be reached in tests, and `TestIO` round-trips Value I/O.

@@ -7,6 +7,10 @@ import com.itszuvalex.technolich.api.utility.ChunkCoord
 import com.itszuvalex.technolich.core.MultiblockManager
 import com.itszuvalex.technolich.core.NetworkManager
 import com.itszuvalex.technolich.dev.DevContent
+import com.itszuvalex.technolich.team.Research
+import com.itszuvalex.technolich.team.TeamDataTypes
+import com.itszuvalex.technolich.team.TeamEvents
+import com.itszuvalex.technolich.team.TeamManager
 import com.mojang.logging.LogUtils
 import net.minecraft.world.level.Level
 import net.neoforged.fml.common.Mod
@@ -43,10 +47,18 @@ object TechnoLich {
     @JvmField
     val MULTIBLOCK_MANAGER = MultiblockManager()
 
+    /**
+     * Teams and their research, loaded when the server starts and saved with the overworld. See [TeamManager].
+     */
+    @JvmField
+    val TEAMS = TeamManager()
+
     init {
         // Built-in modules must exist before RegisterCapabilitiesEvent
         Modules.init()
         Components.register(MOD_BUS)
+        TeamDataTypes.register(Research.TYPE)
+        TeamEvents.register(MOD_BUS)
 
         if (!FMLEnvironment.isProduction()) {
             DevContent.register(MOD_BUS)
