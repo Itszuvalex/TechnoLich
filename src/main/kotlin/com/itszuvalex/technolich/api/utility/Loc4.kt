@@ -7,44 +7,38 @@ import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
 import net.minecraft.resources.Identifier
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.entity.BlockEntity
-import java.util.Objects
 import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**
- * A block position in a dimension. Subclasses differ only in how they reach the world: [Loc4Level] holds a [Level],
- * [Loc4ILevel] an [ILevel], and [Loc4Indirect] only the dimension id (it cannot look anything up).
- *
- * Equality and ordering are by value (dimension + position) regardless of subclass, so any two [Loc4]s for the
- * same block are interchangeable as map keys.
+ * A block position in a dimension. A plain value: equality, hashing and ordering are by dimension and position. It
+ * holds no reference to a level; to see what is there, pass the level to [getIBlockEntity].
  */
-abstract class Loc4(val pos: BlockPos) : Comparable<Loc4> {
-    abstract val dimensionId: Identifier
-
-    abstract fun getOffset(x: Int, y: Int, z: Int): Loc4
-
-    abstract fun copy(): Loc4
-
+data class Loc4(val dimensionId: Identifier, val pos: BlockPos) : Comparable<Loc4> {
     val x: Int get() = pos.x
     val y: Int get() = pos.y
     val z: Int get() = pos.z
 
-    fun getOffset(offset: BlockPos): Loc4 = getOffset(offset.x, offset.y, offset.z)
-
     val chunkCoords: ChunkCoord get() = ChunkCoord.of(pos)
 
-    fun anchor(level: Level): Loc4 = Loc4Level(level, pos)
+    fun getOffset(x: Int, y: Int, z: Int): Loc4 = copy(pos = pos.offset(x, y, z))
 
-    fun anchor(level: ILevel): Loc4 = Loc4ILevel(level, pos)
+    fun getOffset(offset: BlockPos): Loc4 = copy(pos = pos.offset(offset))
 
     /**
-     * @param force Look up even if the chunk is not loaded (may load it).
+     * @param level The level for [dimensionId].
+     * @param force Look up even if the chunk is not loaded (loads it).
+     * @throws IllegalArgumentException if [level] is a different dimension.
      */
-    abstract fun getIBlockEntity(force: Boolean): IBlockEntity?
+    @JvmOverloads
+    fun getIBlockEntity(level: ILevel, force: Boolean = false): IBlockEntity? {
+        require(level.dimensionLocation() == dimensionId) { "$this looked up in ${level.dimensionLocation()}" }
+        return if (force || level.isLoaded(pos)) level.getIBlockEntity(pos) else null
+    }
 
-    abstract fun getBlockEntity(force: Boolean): BlockEntity?
-
+    /**
+     * @return [Double.MAX_VALUE] across dimensions.
+     */
     fun distSqr(other: Loc4): Double {
         if (other.dimensionId != dimensionId) return Double.MAX_VALUE
         return distSqr(other.x, other.y, other.z)
@@ -57,6 +51,9 @@ abstract class Loc4(val pos: BlockPos) : Comparable<Loc4> {
         return dx * dx + dy * dy + dz * dz
     }
 
+    /**
+     * @return [Double.MAX_VALUE] across dimensions.
+     */
     fun dist(other: Loc4): Double {
         if (other.dimensionId != dimensionId) return Double.MAX_VALUE
         return dist(other.x, other.y, other.z)
@@ -64,23 +61,7 @@ abstract class Loc4(val pos: BlockPos) : Comparable<Loc4> {
 
     fun dist(x: Int, y: Int, z: Int): Double = sqrt(distSqr(x, y, z))
 
-    override fun compareTo(other: Loc4): Int {
-        val dim = dimensionId.compareTo(other.dimensionId)
-        if (dim != 0) return dim
-        val xl = x.compareTo(other.x)
-        if (xl != 0) return xl
-        val yl = y.compareTo(other.y)
-        if (yl != 0) return yl
-        return z.compareTo(other.z)
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is Loc4) return false
-        return dimensionId == other.dimensionId && pos == other.pos
-    }
-
-    override fun hashCode(): Int = Objects.hash(dimensionId, pos)
+    override fun compareTo(other: Loc4): Int = compareValuesBy(this, other, Loc4::dimensionId, Loc4::x, Loc4::y, Loc4::z)
 
     override fun toString(): String = "Loc4[$dimensionId ${pos.x},${pos.y},${pos.z}]"
 
@@ -93,13 +74,10 @@ abstract class Loc4(val pos: BlockPos) : Comparable<Loc4> {
 
     companion object {
         @JvmStatic
-        fun of(worldId: Identifier, loc: BlockPos): Loc4 = Loc4Indirect(worldId, loc)
+        fun of(level: Level, pos: BlockPos): Loc4 = Loc4(level.dimension().identifier(), pos)
 
         @JvmStatic
-        fun of(level: Level, loc: BlockPos): Loc4 = Loc4Level(level, loc)
-
-        @JvmStatic
-        fun of(level: ILevel, loc: BlockPos): Loc4 = Loc4ILevel(level, loc)
+        fun of(level: ILevel, pos: BlockPos): Loc4 = Loc4(level.dimensionLocation(), pos)
 
         const val X_KEY = "x"
         const val Y_KEY = "y"
@@ -107,11 +85,8 @@ abstract class Loc4(val pos: BlockPos) : Comparable<Loc4> {
         const val DIM_KEY = "dim"
 
         @JvmField
-        val ORIGIN: Loc4 = of(Identifier.parse("overworld"), BlockPos(0, 0, 0))
+        val ORIGIN: Loc4 = Loc4(Identifier.parse("overworld"), BlockPos(0, 0, 0))
 
-        /**
-         * Serializes any Loc4 by value; decodes to a [Loc4Indirect].
-         */
         @JvmField
         val CODEC: Codec<Loc4> = RecordCodecBuilder.create { instance ->
             instance.group(
@@ -119,7 +94,7 @@ abstract class Loc4(val pos: BlockPos) : Comparable<Loc4> {
                 Codec.INT.fieldOf(Y_KEY).forGetter(Loc4::y),
                 Codec.INT.fieldOf(Z_KEY).forGetter(Loc4::z),
                 Identifier.CODEC.fieldOf(DIM_KEY).forGetter(Loc4::dimensionId),
-            ).apply(instance) { x, y, z, dim -> of(dim, BlockPos(x, y, z)) }
+            ).apply(instance) { x, y, z, dim -> Loc4(dim, BlockPos(x, y, z)) }
         }
     }
 }

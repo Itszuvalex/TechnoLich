@@ -55,51 +55,74 @@ class DirectionUtilTest {
 
 class Loc4Test {
     @Test
-    fun Equals_DifferentSubclassesSameLocation_EqualWithSameHash() {
+    fun Equals_FromLevelOrDirect_EqualWithSameHash() {
         val pos = BlockPos(1, 2, 3)
-        val anchored = Loc4.of(TestableLevel(TestableLoc4.DEFAULT_DIM), pos)
-        val indirect: Loc4 = Loc4Indirect(TestableLoc4.DEFAULT_DIM, pos)
-        Assertions.assertEquals(anchored, indirect)
-        Assertions.assertEquals(indirect, anchored)
-        Assertions.assertEquals(anchored.hashCode(), indirect.hashCode())
-        Assertions.assertEquals(0, anchored.compareTo(indirect))
+        val fromLevel = Loc4.of(TestableLevel(TestableLoc4.DEFAULT_DIM), pos)
+        val direct = Loc4(TestableLoc4.DEFAULT_DIM, pos)
+        Assertions.assertEquals(fromLevel, direct)
+        Assertions.assertEquals(direct, fromLevel)
+        Assertions.assertEquals(fromLevel.hashCode(), direct.hashCode())
+        Assertions.assertEquals(0, fromLevel.compareTo(direct))
     }
 
     @Test
-    fun Equals_DifferentSubclassesSameLocation_InterchangeableAsMapKeys() {
+    fun Equals_FromLevelOrDirect_InterchangeableAsMapKeys() {
         val pos = BlockPos(1, 2, 3)
         val map = HashMap<Loc4, String>()
         map[Loc4.of(TestableLevel(TestableLoc4.DEFAULT_DIM), pos)] = "node"
-        Assertions.assertEquals("node", map[Loc4Indirect(TestableLoc4.DEFAULT_DIM, pos)])
+        Assertions.assertEquals("node", map[Loc4(TestableLoc4.DEFAULT_DIM, pos)])
     }
 
     @Test
     fun Equals_DifferentDimensionOrPosition_NotEqual() {
         val pos = BlockPos(1, 2, 3)
-        val loc = Loc4Indirect(TestableLoc4.DEFAULT_DIM, pos)
-        Assertions.assertNotEquals(loc, Loc4Indirect(Identifier.parse("other"), pos))
-        Assertions.assertNotEquals(loc, Loc4Indirect(TestableLoc4.DEFAULT_DIM, pos.above()))
+        val loc = Loc4(TestableLoc4.DEFAULT_DIM, pos)
+        Assertions.assertNotEquals(loc, Loc4(Identifier.parse("other"), pos))
+        Assertions.assertNotEquals(loc, Loc4(TestableLoc4.DEFAULT_DIM, pos.above()))
         Assertions.assertFalse(loc.equals(pos))
     }
 
     @Test
     fun DistSqr_FarApartCoordinates_DoesNotOverflow() {
-        val a = Loc4Indirect(TestableLoc4.DEFAULT_DIM, BlockPos(-30_000_000, 0, 0))
-        val b = Loc4Indirect(TestableLoc4.DEFAULT_DIM, BlockPos(30_000_000, 0, 0))
+        val a = Loc4(TestableLoc4.DEFAULT_DIM, BlockPos(-30_000_000, 0, 0))
+        val b = Loc4(TestableLoc4.DEFAULT_DIM, BlockPos(30_000_000, 0, 0))
         Assertions.assertEquals(3.6e15, a.distSqr(b), 1.0)
     }
 
     @Test
     fun Codec_RoundTrip_KeepsValue() {
-        val loc = Loc4Indirect(TestableLoc4.DEFAULT_DIM, BlockPos(4, -5, 6))
+        val loc = Loc4(TestableLoc4.DEFAULT_DIM, BlockPos(4, -5, 6))
         val encoded = Loc4.CODEC.encodeStart(net.minecraft.nbt.NbtOps.INSTANCE, loc).getOrThrow()
         Assertions.assertEquals(loc, Loc4.CODEC.parse(net.minecraft.nbt.NbtOps.INSTANCE, encoded).getOrThrow())
+    }
+
+    @Test
+    fun CompareTo_OrdersByDimensionThenXYZ() {
+        val dim = TestableLoc4.DEFAULT_DIM
+        val sorted = listOf(
+            Loc4(dim, BlockPos(1, 0, 0)),
+            Loc4(dim, BlockPos(0, 5, 0)),
+            Loc4(dim, BlockPos(0, 0, 9)),
+            Loc4(Identifier.parse("a"), BlockPos(9, 9, 9)),
+        ).sorted()
+        Assertions.assertEquals(
+            listOf(BlockPos(9, 9, 9), BlockPos(0, 0, 9), BlockPos(0, 5, 0), BlockPos(1, 0, 0)),
+            sorted.map { it.pos },
+        )
+    }
+
+    @Test
+    fun GetIBlockEntity_LevelOfAnotherDimension_Throws() {
+        val loc = Loc4(TestableLoc4.DEFAULT_DIM, BlockPos.ZERO)
+        Assertions.assertThrows(IllegalArgumentException::class.java) {
+            loc.getIBlockEntity(TestableLevel(Identifier.parse("other")))
+        }
     }
 }
 
 class LocationTrackerTest {
     private val dim = TestableLoc4.DEFAULT_DIM
-    private fun loc(x: Int, y: Int, z: Int, d: Identifier = dim) = Loc4Indirect(d, BlockPos(x, y, z))
+    private fun loc(x: Int, y: Int, z: Int, d: Identifier = dim) = Loc4(d, BlockPos(x, y, z))
 
     @Test
     fun TrackLocation_ShouldTrackLocation() {

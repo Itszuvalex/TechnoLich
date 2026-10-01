@@ -5,7 +5,6 @@ import com.itszuvalex.technolich.api.adapters.IItemStack
 import com.itszuvalex.technolich.api.adapters.ILevel
 import com.itszuvalex.technolich.api.adapters.IModule
 import com.itszuvalex.technolich.api.utility.Loc4
-import com.itszuvalex.technolich.api.utility.Loc4Indirect
 import com.mojang.serialization.Codec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
@@ -43,7 +42,7 @@ object MCAssert {
 
 object TestableLoc4 {
     val DEFAULT_DIM: Identifier = Identifier.parse("test")
-    val ORIGIN: Loc4 = Loc4Indirect(DEFAULT_DIM, BlockPos(0, 0, 0))
+    val ORIGIN: Loc4 = Loc4(DEFAULT_DIM, BlockPos(0, 0, 0))
 }
 
 /**

@@ -6,7 +6,6 @@ import com.itszuvalex.technolich.TestableLevel
 import com.itszuvalex.technolich.TestableLoc4
 import com.itszuvalex.technolich.api.adapters.IBlockEntity
 import com.itszuvalex.technolich.api.adapters.IModule
-import com.itszuvalex.technolich.api.utility.Loc4
 import com.itszuvalex.technolich.api.utility.NBTSerializationScope
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -47,7 +46,7 @@ class MultiblockManagerTest {
         return entity
     }
 
-    private fun load(entity: TestableMultiblockBlockEntity) = manager.onPartLoaded(Loc4.of(level, entity.getBlockPos()), entity.part)
+    private fun load(entity: TestableMultiblockBlockEntity) = manager.onPartLoaded(level, entity.getBlockPos(), entity.part)
 
     @Test
     fun OnPartLoaded_AllSlotsPresentAndMatching_JoinsEveryMemberToTheSameStructure() {
@@ -188,7 +187,7 @@ class MultiblockManagerTest {
             val part = (lvl.getIBlockEntity(pos) as TestableMultiblockBlockEntity).part
             mgr.onPartRemoved(lvl, pos, part)
         }
-        mgr.onPartLoaded(Loc4.of(level, BlockPos.ZERO), core.part)
+        mgr.onPartLoaded(level, BlockPos.ZERO, core.part)
 
         mgr.onPartRemoved(level, east.getBlockPos(), east.part)
 
@@ -226,7 +225,7 @@ class MultiblockManagerTest {
         val id = core.part.membership!!.structureId
 
         val restarted = MultiblockManager()
-        restarted.onPartLoaded(Loc4.of(level, BlockPos.ZERO), core.part)
+        restarted.onPartLoaded(level, BlockPos.ZERO, core.part)
 
         Assertions.assertEquals(id, core.part.membership!!.structureId, "reload must not mint a new id")
         Assertions.assertSame(core.part, restarted.get(id)!!.memberAt(BlockPos.ZERO))

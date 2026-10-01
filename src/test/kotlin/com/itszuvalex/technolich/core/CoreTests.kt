@@ -10,7 +10,6 @@ import com.itszuvalex.technolich.api.adapters.Module
 import com.itszuvalex.technolich.api.utility.ChunkCoord
 import com.itszuvalex.technolich.api.utility.IMutableModuleCapabilityMap
 import com.itszuvalex.technolich.api.utility.Loc4
-import com.itszuvalex.technolich.api.utility.Loc4Indirect
 import com.itszuvalex.technolich.api.utility.ModuleCapabilityArrayListMap
 import com.itszuvalex.technolich.core.frag.BlockEntityFragment
 import com.itszuvalex.technolich.core.frag.FragColorable
@@ -54,14 +53,20 @@ class TestableFragmentHost : IFragmentHost {
     }
 }
 
-class TestableNetwork(id: Int, private val module: IModule<TestableNetworkNode>, private val manager: INetworkManager) :
+class TestableNetwork(
+    id: Int,
+    private val module: IModule<TestableNetworkNode>,
+    private val manager: INetworkManager,
+    private val level: ILevel? = null,
+) :
     TileNetwork<TestableNetworkNode, TestableNetwork>(id, LogicalSide.SERVER) {
     /**
      * The network that took this one over, via onTakeover.
      */
     var takenOverBy: TestableNetwork? = null
 
-    override fun create(): TestableNetwork = TestableNetwork(manager.getNextID(), module, manager)
+    override fun create(): TestableNetwork = TestableNetwork(manager.getNextID(), module, manager, level)
+    override fun levelFor(dimension: Identifier): ILevel? = level?.takeIf { it.dimensionLocation() == dimension }
     override fun networkModule(): IModule<TestableNetworkNode> = module
     override fun register() = manager.addNetwork(this)
     override fun unregister() = manager.removeNetwork(this)
@@ -234,8 +239,8 @@ class NetworkTest {
     fun methodTeardown() = networkManager.clear()
 
     inner class TestState {
-        val network = TestableNetwork(networkManager.getNextID(), module, networkManager).also { it.register() }
         val level = TestableLevel(dimension)
+        val network = TestableNetwork(networkManager.getNextID(), module, networkManager, level).also { it.register() }
 
         fun createNode(pos: BlockPos): TestableNetworkNode {
             val e = TestableNetworkNodeBlockEntity(pos, level)
@@ -245,7 +250,7 @@ class NetworkTest {
             return node
         }
 
-        fun newNetwork() = TestableNetwork(networkManager.getNextID(), module, networkManager).also { it.register() }
+        fun newNetwork() = TestableNetwork(networkManager.getNextID(), module, networkManager, level).also { it.register() }
     }
 
     private fun line(state: TestState, n: Int) = (0 until n).map { x ->
@@ -443,7 +448,7 @@ class NetworkTest {
     fun Explore_VeryLongChain_NoStackOverflow() {
         val state = TestState()
         val length = 100_000
-        val locs: List<Loc4> = (0 until length).map { Loc4Indirect(dimension, BlockPos(it, 0, 0)) }
+        val locs: List<Loc4> = (0 until length).map { Loc4(dimension, BlockPos(it, 0, 0)) }
         val edges = (1 until length).asSequence().map { NetworkEdge(locs[it - 1], locs[it]) }
         val network = state.network.createWithNodesAndEdges(locs.asSequence().map(::TestableNetworkNode), edges)
         Assertions.assertEquals(length, TileNetwork.NetworkExplorer.explore(locs[0], network).size)

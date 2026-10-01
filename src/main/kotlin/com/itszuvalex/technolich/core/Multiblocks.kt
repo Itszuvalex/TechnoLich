@@ -199,7 +199,8 @@ class MultiblockManager(
      * the first of its members to load this session — with no re-validation and no new id. Otherwise, tries to form
      * a new structure at every slot its [IMultiblockMember.candidateRoles] could occupy.
      */
-    fun onPartLoaded(loc: Loc4, member: IMultiblockMember) {
+    fun onPartLoaded(level: ILevel, pos: BlockPos, member: IMultiblockMember) {
+        val loc = Loc4.of(level, pos)
         val membership = member.membership
         if (membership != null) {
             val instance = instances.getOrPut(membership.structureId) {
@@ -211,7 +212,7 @@ class MultiblockManager(
         for (roleRef in member.candidateRoles) {
             val offsets = roleRef.shape.offsetsByRole[roleRef.role] ?: continue
             for (offset in offsets) {
-                if (tryForm(roleRef.shape, anchorFor(loc, offset))) return
+                if (tryForm(level, roleRef.shape, anchorFor(loc, offset))) return
             }
         }
     }
@@ -255,7 +256,7 @@ class MultiblockManager(
         for (offset in membership.shape.slots.keys) {
             if (offset == membership.offset) continue
             val siblingPos = anchor.offset(offset)
-            // Not Loc4.getIBlockEntity(false): the lookup must load the chunk, or an unloaded sibling is orphaned.
+            // Not Loc4.getIBlockEntity(level): the lookup must load the chunk, or an unloaded sibling is orphaned.
             val sibling = level.getIBlockEntity(siblingPos)?.getModule(Modules.MULTIBLOCK_MEMBER, null) ?: continue
             // Another structure (or a lone part) may have taken the slot since; leave it alone.
             if (sibling.membership?.structureId != membership.structureId) continue
@@ -270,10 +271,10 @@ class MultiblockManager(
      * Validates every slot of [shape] at [anchor] against currently-loaded, not-yet-joined members, and if all slots
      * match, mints a new structure id and joins every member to it.
      */
-    private fun tryForm(shape: MultiblockShape, anchor: Loc4): Boolean {
+    private fun tryForm(level: ILevel, shape: MultiblockShape, anchor: Loc4): Boolean {
         val found = LinkedHashMap<BlockPos, IMultiblockMember>()
         for ((offset, role) in shape.slots) {
-            val candidate = anchor.getOffset(offset).getIBlockEntity(false)?.getModule(Modules.MULTIBLOCK_MEMBER, null) ?: return false
+            val candidate = anchor.getOffset(offset).getIBlockEntity(level)?.getModule(Modules.MULTIBLOCK_MEMBER, null) ?: return false
             if (candidate.membership != null) return false
             if (MultiblockRoleRef(shape, role) !in candidate.candidateRoles) return false
             found[offset] = candidate
@@ -343,7 +344,7 @@ class FragMultiblockPart(override val candidateRoles: List<MultiblockRoleRef>) :
 
     override fun onLoad(level: ILevel, pos: BlockPos) {
         if (level.isClientSide()) return
-        manager()?.onPartLoaded(Loc4.of(level, pos), this)
+        manager()?.onPartLoaded(level, pos, this)
     }
 
     override fun onChunkUnloaded(level: ILevel, pos: BlockPos) {

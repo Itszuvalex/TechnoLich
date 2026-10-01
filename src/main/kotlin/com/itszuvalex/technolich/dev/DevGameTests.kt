@@ -174,8 +174,7 @@ object DevGameTests {
         val level = helper.level
         val pos = helper.absolutePos(POS)
         helper.assertTrue(ILevel.of(level).getIBlockEntity(pos) === be, "ILevel#getIBlockEntity wrapped the core")
-        helper.assertTrue(Loc4.of(level, pos).getIBlockEntity(false) === be, "Loc4Level#getIBlockEntity wrapped the core")
-        helper.assertTrue(Loc4.of(ILevel.of(level), pos).getIBlockEntity(false) === be, "Loc4ILevel#getIBlockEntity wrapped the core")
+        helper.assertTrue(Loc4.of(level, pos).getIBlockEntity(ILevel.of(level)) === be, "Loc4#getIBlockEntity wrapped the core")
         helper.succeed()
     }
 

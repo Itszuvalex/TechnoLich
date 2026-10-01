@@ -6,7 +6,11 @@ import com.itszuvalex.technolich.api.adapters.IModule
 import com.itszuvalex.technolich.api.utility.ChunkCoord
 import com.itszuvalex.technolich.api.utility.Loc4
 import com.itszuvalex.technolich.api.utility.LocationTracker
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
 import net.neoforged.fml.LogicalSide
+import net.neoforged.neoforge.server.ServerLifecycleHooks
 import java.util.ArrayDeque
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -407,7 +411,15 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
         removeNodes(locationTracker.getTrackedLocationsInChunk(level.dimensionLocation(), chunk).toList().asSequence().mapNotNull { nodeMap[it] })
     }
 
-    private fun getModForLoc(loc: Loc4): C? = loc.getIBlockEntity(false)?.getModule(networkModule(), null)
+    /**
+     * The level for [dimension], used to find the block entity at a [Loc4]: networks can span dimensions, so a
+     * location alone does not say which level to look in. Defaults to the running server's level; tests override it.
+     */
+    protected open fun levelFor(dimension: Identifier): ILevel? =
+        ServerLifecycleHooks.getCurrentServer()?.getLevel(ResourceKey.create(Registries.DIMENSION, dimension))?.let(ILevel::of)
+
+    private fun getModForLoc(loc: Loc4): C? =
+        levelFor(loc.dimensionId)?.let { loc.getIBlockEntity(it) }?.getModule(networkModule(), null)
 
     private fun addConnectionSilently(a: Loc4, b: Loc4) {
         connectionMap.getOrPut(a, ::HashSet).add(b)

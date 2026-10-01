@@ -67,7 +67,7 @@ src/main/kotlin/com/itszuvalex/technolich/
 │   ├── storage/           IItemStorage.kt, IBattery.kt; ItemStorages.kt (Array, Slice, Aggregate, Dynamic, NBT,
 │   │                      ResourceHandler-backed); Batteries.kt (PowerBattery, PowerBatteryNBT,
 │   │                      DynamicIBattery, BatteryEnergyHandler)
-│   ├── utility/           Loc4 (+Level/ILevel/Indirect), ChunkCoord, LocationTracker, DirectionUtil,
+│   ├── utility/           Loc4 (value type), ChunkCoord, LocationTracker, DirectionUtil,
 │   │                      ModuleCapabilityMaps.kt, IScopedSerialization + NBTSerializationScope, Overideable,
 │   │                      SidedHolders.kt (LazySingleSidedHolder, SingleSidedSupplier), misc helpers
 │   └── wrappers/          Wrappers.kt: Vanilla/NeoForge ↔ TechnoLich adapters (WrapperLevel, WrapperBlockEntity,
@@ -132,7 +132,7 @@ NeoForge 26.1 replaced `IItemHandler`/`IEnergyStorage` with transactional `Resou
 - NeoForge → TechnoLich: `ItemStorageResourceHandler`, `BatteryEnergyHandler`. Their mutators open **root** transactions, so never call them while a transaction is open.
 
 ### Networks
-`INetwork`/`TileNetwork` group `INetworkNode`s (located by `Loc4`) into server-side networks managed by `NetworkManager` (`TechnoLich.NETWORK_MANAGER`, server side only; ticked from `ServerTickEvent.Pre/Post`). Nodes are found through a network module on the block entity (`TileNetwork#networkModule`). `LocationTracker` indexes locations by dimension and chunk. See the KDoc on `INetwork` for the design rationale. Node and edge collections are `Sequence`s.
+`INetwork`/`TileNetwork` group `INetworkNode`s (located by `Loc4`) into server-side networks managed by `NetworkManager` (`TechnoLich.NETWORK_MANAGER`, server side only; ticked from `ServerTickEvent.Pre/Post`). Nodes are found through a network module on the block entity (`TileNetwork#networkModule`), looked up in the level `TileNetwork#levelFor(dimension)` returns (the running server's level by default; tests override it). `LocationTracker` indexes locations by dimension and chunk. See the KDoc on `INetwork` for the design rationale. Node and edge collections are `Sequence`s.
 
 Lifecycle: `TechnoLich` forwards server `ChunkEvent.Unload` to `NetworkManager#onChunkUnload`, which drops that chunk's nodes as a batch; block entities must re-add their node when they load. Removed nodes get `onRemoved`, absorbed networks get `onTakeover`, and `addNode` moves a node out of any previous network first. Connecting two nodes pulls both (and their networks) into the network doing the connecting. Splitting explores iteratively, so long cable lines are safe.
 
