@@ -1,17 +1,11 @@
 package com.itszuvalex.technolich.core.frag
 
-import com.itszuvalex.technolich.api.adapters.ILevel
-import com.itszuvalex.technolich.api.utility.NBTSerializationScope
 import com.itszuvalex.technolich.core.IBlockEntityFragment
 import com.itszuvalex.technolich.core.IFragmentHost
 import com.itszuvalex.technolich.core.IInternalBlockEntityFragment
-import net.minecraft.core.BlockPos
-import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.storage.ValueInput
-import net.minecraft.world.level.storage.ValueOutput
 
 /**
- * No-op defaults for fragments, plus access to the owning block entity once attached.
+ * Base for fragments that need the owning block entity once attached, e.g. to mark it dirty.
  */
 abstract class InternalBlockEntityFragment : IInternalBlockEntityFragment {
     protected var host: IFragmentHost? = null
@@ -34,18 +28,6 @@ abstract class InternalBlockEntityFragment : IInternalBlockEntityFragment {
     protected fun markDirtyAndSync() {
         host?.markDirtyAndSync()
     }
-
-    override fun serializeTo(scope: NBTSerializationScope, output: ValueOutput) {}
-
-    override fun deserialize(input: ValueInput, scope: NBTSerializationScope) {}
-
-    override fun handlesScope(scope: NBTSerializationScope): Boolean = false
-
-    override fun onRemove(level: ILevel, pos: BlockPos, blockStatePrev: BlockState) {}
-
-    override fun invalidateFrags() {}
-
-    override fun rehydrateFrags() {}
 }
 
 abstract class BlockEntityFragment<T : Any> : InternalBlockEntityFragment(), IBlockEntityFragment<T>

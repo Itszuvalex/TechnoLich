@@ -46,7 +46,7 @@ import net.neoforged.neoforge.capabilities.BlockCapability
  * its own child, keyed by its name, under [FRAG_KEY].
  */
 open class BlockEntityCore(type: BlockEntityType<*>, pos: BlockPos, state: BlockState) :
-    BlockEntity(type, pos, state), IBlockEntity, IBlockEntityBlockEventHandler, IScopedSerialization, IFragmentHost {
+    BlockEntity(type, pos, state), IBlockEntity, IScopedSerialization, IFragmentHost {
     @JvmField
     protected val fragList: BlockEntityFragmentCollection = BlockEntityFragmentCollection(this)
 
@@ -164,11 +164,8 @@ open class BlockEntityCore(type: BlockEntityType<*>, pos: BlockPos, state: Block
 
     override fun preRemoveSideEffects(pos: BlockPos, state: BlockState) {
         super.preRemoveSideEffects(pos, state)
-        level?.let { onRemove(ILevel.of(it), pos, state) }
+        level?.let { fragList.onRemove(ILevel.of(it), pos, state) }
     }
-
-    override fun onRemove(level: ILevel, pos: BlockPos, blockStatePrev: BlockState) =
-        fragList.onRemove(level, pos, blockStatePrev)
 
     companion object {
         private val LOGGER = LogUtils.getLogger()

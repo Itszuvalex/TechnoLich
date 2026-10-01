@@ -16,18 +16,44 @@ import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
 import net.neoforged.neoforge.capabilities.BlockCapability
 
-interface IBlockEntityEventHandler {
-    fun invalidateFrags()
+/**
+ * The block entity lifecycle as fragments see it. Every hook defaults to doing nothing, so a fragment overrides only
+ * the ones it needs. [BlockEntityCore] drives these through its [BlockEntityFragmentCollection].
+ */
+interface IFragmentLifecycle {
+    /**
+     * Called once the owning block entity is fully attached to a loaded level — both for one freshly placed into an
+     * already-loaded chunk, and for one loaded in along with its chunk. See [BlockEntity.onLoad].
+     */
+    fun onLoad(level: ILevel, pos: BlockPos) {}
 
-    fun rehydrateFrags()
-}
+    /**
+     * Called when the owning block entity's chunk unloads while the block entity itself is not being removed
+     * (compare [onRemove], a real break/replace). See [BlockEntity.onChunkUnloaded].
+     */
+    fun onChunkUnloaded(level: ILevel, pos: BlockPos) {}
 
-interface IBlockEntityBlockEventHandler {
+    /**
+     * Called when a neighbouring block changed (`Block#neighborChanged`; 26.1 no longer says which neighbour). Only
+     * blocks extending [EntityBlockCore] forward this.
+     */
+    fun onNeighborChanged(level: ILevel, pos: BlockPos) {}
+
     /**
      * Server side, called when the block is actually replaced (not for block state changes that keep the block
      * entity).
      */
-    fun onRemove(level: ILevel, pos: BlockPos, blockStatePrev: BlockState)
+    fun onRemove(level: ILevel, pos: BlockPos, blockStatePrev: BlockState) {}
+
+    /**
+     * The block entity was removed from the level (`setRemoved`); exposed modules stop resolving until [rehydrateFrags].
+     */
+    fun invalidateFrags() {}
+
+    /**
+     * The block entity is back in the level (`clearRemoved`).
+     */
+    fun rehydrateFrags() {}
 }
 
 fun interface IBlockEntityTickable {
@@ -54,9 +80,10 @@ interface IFragmentHost {
 }
 
 /**
- * A piece of block entity behaviour with its own lifecycle hooks and serialization, but no exposed module.
+ * A piece of block entity behaviour with its own lifecycle hooks and serialization, but no exposed module. Only
+ * [name] is required: lifecycle hooks default to no-ops and serialization defaults to handling no scope.
  */
-interface IInternalBlockEntityFragment : IBlockEntityEventHandler, IBlockEntityBlockEventHandler, IScopedSerialization {
+interface IInternalBlockEntityFragment : IFragmentLifecycle, IScopedSerialization {
     /**
      * Unique within the block entity; keys this fragment's saved data.
      */
@@ -67,23 +94,11 @@ interface IInternalBlockEntityFragment : IBlockEntityEventHandler, IBlockEntityB
      */
     fun onAttach(host: IFragmentHost) {}
 
-    /**
-     * Called once the owning block entity is fully attached to a loaded level — both for one freshly placed into an
-     * already-loaded chunk, and for one loaded in along with its chunk. See [BlockEntity.onLoad].
-     */
-    fun onLoad(level: ILevel, pos: BlockPos) {}
+    override fun serializeTo(scope: NBTSerializationScope, output: ValueOutput) {}
 
-    /**
-     * Called when the owning block entity's chunk unloads while the block entity itself is not being removed
-     * (compare [IBlockEntityBlockEventHandler.onRemove], a real break/replace). See [BlockEntity.onChunkUnloaded].
-     */
-    fun onChunkUnloaded(level: ILevel, pos: BlockPos) {}
+    override fun deserialize(input: ValueInput, scope: NBTSerializationScope) {}
 
-    /**
-     * Called when a neighbouring block changed (`Block#neighborChanged`; 26.1 no longer says which neighbour). Only
-     * blocks extending [EntityBlockCore] forward this.
-     */
-    fun onNeighborChanged(level: ILevel, pos: BlockPos) {}
+    override fun handlesScope(scope: NBTSerializationScope): Boolean = false
 }
 
 /**
@@ -100,10 +115,11 @@ interface IBlockEntityFragment<T : Any> : IInternalBlockEntityFragment {
 }
 
 /**
- * The fragments, exposed modules/capabilities and tickables of one block entity.
+ * The fragments, exposed modules/capabilities and tickables of one block entity. Forwards every [IFragmentLifecycle]
+ * hook to each fragment, in the order they were added.
  */
 class BlockEntityFragmentCollection(private val host: IFragmentHost) :
-    IBlockEntityEventHandler, IBlockEntityBlockEventHandler, IScopedSerialization, IModuleCapabilityMap, IBlockEntityTickable {
+    IFragmentLifecycle, IScopedSerialization, IModuleCapabilityMap, IBlockEntityTickable {
     private val modCapMap: IMutableModuleCapabilityMap = ModuleCapabilityArrayListMap()
     private val modList = ArrayList<IInternalBlockEntityFragment>()
     private val tickList = ArrayList<IBlockEntityTickable>()
@@ -140,11 +156,14 @@ class BlockEntityFragmentCollection(private val host: IFragmentHost) :
         tickList.add(tickable)
     }
 
-    fun onLoad(level: ILevel, pos: BlockPos) = modList.forEach { it.onLoad(level, pos) }
+    override fun onLoad(level: ILevel, pos: BlockPos) = modList.forEach { it.onLoad(level, pos) }
 
-    fun onChunkUnloaded(level: ILevel, pos: BlockPos) = modList.forEach { it.onChunkUnloaded(level, pos) }
+    override fun onChunkUnloaded(level: ILevel, pos: BlockPos) = modList.forEach { it.onChunkUnloaded(level, pos) }
 
-    fun onNeighborChanged(level: ILevel, pos: BlockPos) = modList.forEach { it.onNeighborChanged(level, pos) }
+    override fun onNeighborChanged(level: ILevel, pos: BlockPos) = modList.forEach { it.onNeighborChanged(level, pos) }
+
+    override fun onRemove(level: ILevel, pos: BlockPos, blockStatePrev: BlockState) =
+        modList.forEach { it.onRemove(level, pos, blockStatePrev) }
 
     override fun tick(level: ILevel, blockPos: BlockPos, blockState: BlockState) =
         tickList.forEach { it.tick(level, blockPos, blockState) }
@@ -173,7 +192,4 @@ class BlockEntityFragmentCollection(private val host: IFragmentHost) :
         modList.forEach { it.rehydrateFrags() }
         modCapMap.rehydrateFrags()
     }
-
-    override fun onRemove(level: ILevel, pos: BlockPos, blockStatePrev: BlockState) =
-        modList.forEach { it.onRemove(level, pos, blockStatePrev) }
 }
