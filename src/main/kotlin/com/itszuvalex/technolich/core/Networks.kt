@@ -358,12 +358,15 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(overri
 
     override fun refresh() = nodes.forEach { it.refresh() }
 
+    /**
+     * Only server-side networks are managed (and ticked); a client-side network is not registered.
+     */
     override fun register() {
-        TechnoLich.NETWORK_MANAGER.get(side)?.addNetwork(this)
+        if (side == LogicalSide.SERVER) TechnoLich.NETWORK_MANAGER.addNetwork(this)
     }
 
     override fun unregister() {
-        TechnoLich.NETWORK_MANAGER.get(side)?.removeNetwork(this)
+        if (side == LogicalSide.SERVER) TechnoLich.NETWORK_MANAGER.removeNetwork(this)
     }
 
     override val size: Int get() = nodeMap.size

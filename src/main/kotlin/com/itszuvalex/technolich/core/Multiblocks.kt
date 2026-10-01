@@ -14,7 +14,6 @@ import net.minecraft.resources.Identifier
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
-import net.neoforged.fml.LogicalSide
 import org.jetbrains.annotations.TestOnly
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -344,20 +343,18 @@ class FragMultiblockPart(override val candidateRoles: List<MultiblockRoleRef>) :
 
     override fun onLoad(level: ILevel, pos: BlockPos) {
         if (level.isClientSide) return
-        manager()?.onPartLoaded(level, pos, this)
+        TechnoLich.MULTIBLOCK_MANAGER.onPartLoaded(level, pos, this)
     }
 
     override fun onChunkUnloaded(level: ILevel, pos: BlockPos) {
         if (level.isClientSide) return
-        manager()?.onPartUnloaded(this)
+        TechnoLich.MULTIBLOCK_MANAGER.onPartUnloaded(this)
     }
 
     override fun onRemove(level: ILevel, pos: BlockPos, blockStatePrev: BlockState) {
         if (level.isClientSide) return
-        manager()?.onPartRemoved(level, pos, this)
+        TechnoLich.MULTIBLOCK_MANAGER.onPartRemoved(level, pos, this)
     }
-
-    private fun manager() = TechnoLich.MULTIBLOCK_MANAGER.get(LogicalSide.SERVER)
 
     companion object {
         const val NAME = "MultiblockPart"

@@ -4,13 +4,11 @@ import com.itszuvalex.technolich.api.Components
 import com.itszuvalex.technolich.api.Modules
 import com.itszuvalex.technolich.api.adapters.ILevel
 import com.itszuvalex.technolich.api.utility.ChunkCoord
-import com.itszuvalex.technolich.api.utility.LazySingleSidedHolder
 import com.itszuvalex.technolich.core.MultiblockManager
 import com.itszuvalex.technolich.core.NetworkManager
 import com.itszuvalex.technolich.dev.DevContent
 import com.mojang.logging.LogUtils
 import net.minecraft.world.level.Level
-import net.neoforged.fml.LogicalSide
 import net.neoforged.fml.common.Mod
 import net.neoforged.fml.loading.FMLEnvironment
 import net.neoforged.neoforge.common.NeoForge
@@ -32,17 +30,18 @@ object TechnoLich {
     val LOGGER: Logger = LogUtils.getLogger()
 
     /**
-     * Server-side registry of live block entity networks, ticked from server tick events.
+     * Live server-side block entity networks, ticked from server tick events and cleared when the server stops.
      */
     @JvmField
-    val NETWORK_MANAGER = LazySingleSidedHolder(::NetworkManager, LogicalSide.SERVER)
+    val NETWORK_MANAGER = NetworkManager()
 
     /**
-     * Server-side registry of formed multiblock structures. Unlike [NETWORK_MANAGER], it needs no chunk-unload
-     * wiring here: each member deregisters itself via [com.itszuvalex.technolich.core.FragMultiblockPart.onChunkUnloaded].
+     * Formed multiblock structures on the server, cleared when the server stops. Unlike [NETWORK_MANAGER], it needs no
+     * chunk-unload wiring here: each member deregisters itself via
+     * [com.itszuvalex.technolich.core.FragMultiblockPart.onChunkUnloaded].
      */
     @JvmField
-    val MULTIBLOCK_MANAGER = LazySingleSidedHolder(::MultiblockManager, LogicalSide.SERVER)
+    val MULTIBLOCK_MANAGER = MultiblockManager()
 
     init {
         // Built-in modules must exist before RegisterCapabilitiesEvent
@@ -54,11 +53,11 @@ object TechnoLich {
         }
 
         NeoForge.EVENT_BUS.addListener { _: ServerStoppedEvent ->
-            NETWORK_MANAGER.get(LogicalSide.SERVER)?.clear()
-            MULTIBLOCK_MANAGER.get(LogicalSide.SERVER)?.clear()
+            NETWORK_MANAGER.clear()
+            MULTIBLOCK_MANAGER.clear()
         }
-        NeoForge.EVENT_BUS.addListener { _: ServerTickEvent.Pre -> NETWORK_MANAGER.get(LogicalSide.SERVER)?.onTickStart() }
-        NeoForge.EVENT_BUS.addListener { _: ServerTickEvent.Post -> NETWORK_MANAGER.get(LogicalSide.SERVER)?.onTickEnd() }
+        NeoForge.EVENT_BUS.addListener { _: ServerTickEvent.Pre -> NETWORK_MANAGER.onTickStart() }
+        NeoForge.EVENT_BUS.addListener { _: ServerTickEvent.Post -> NETWORK_MANAGER.onTickEnd() }
         NeoForge.EVENT_BUS.addListener(::onChunkUnload)
     }
 
@@ -69,6 +68,6 @@ object TechnoLich {
         val level = event.level as? Level ?: return
         if (level.isClientSide) return
         val pos = event.chunk.pos
-        NETWORK_MANAGER.get(LogicalSide.SERVER)?.onChunkUnload(ILevel.of(level), ChunkCoord(pos.x(), pos.z()))
+        NETWORK_MANAGER.onChunkUnload(ILevel.of(level), ChunkCoord(pos.x(), pos.z()))
     }
 }
