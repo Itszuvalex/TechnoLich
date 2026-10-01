@@ -55,7 +55,7 @@ class TestableFragmentHost : IFragmentHost {
 class TestableNetwork(
     id: Int,
     private val module: IModule<TestableNetworkNode>,
-    private val manager: INetworkManager,
+    private val manager: NetworkManager,
     private val level: ILevel? = null,
 ) :
     TileNetwork<TestableNetworkNode, TestableNetwork>(id, LogicalSide.SERVER) {
@@ -214,7 +214,7 @@ class ColorTest {
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class NetworkTest {
     lateinit var module: IModule<TestableNetworkNode>
-    val networkManager: INetworkManager = NetworkManager()
+    val networkManager: NetworkManager = NetworkManager()
     lateinit var dimension: Identifier
 
     @BeforeAll
@@ -284,11 +284,6 @@ class NetworkTest {
         Assertions.assertTrue(neighbor.loc in map[node.loc]!!)
         Assertions.assertTrue(node.loc in map[neighbor.loc]!!)
         Assertions.assertEquals(listOf(NetworkEdge(node.loc, neighbor.loc)), state.network.edges.toList())
-    }
-
-    @Test
-    fun Create_ShouldCreateLikeNetworkKind() {
-        Assertions.assertInstanceOf(TestableNetwork::class.java, TestState().network.create())
     }
 
     @Test

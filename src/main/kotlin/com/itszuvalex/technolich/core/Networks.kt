@@ -27,7 +27,8 @@ import java.util.concurrent.atomic.AtomicInteger
  * Networks only track block entities in loaded chunks. When a chunk unloads, [onChunkUnload] removes its nodes as a
  * batch (see [removeNodes]) instead of recalculating sub-networks per block entity.
  *
- * Uses the Curiously-Recurring-Template-Pattern.
+ * This is what callers use; how a network splits, merges and creates sub-networks is up to the implementation (see
+ * [TileNetwork]). Uses the Curiously-Recurring-Template-Pattern.
  *
  * @param C The derived class of the Nodes comprising this network.
  * @param N The derived class of the Network
@@ -43,28 +44,15 @@ interface INetwork<C : INetworkNode<C, N>, N : INetwork<C, N>> {
      */
     val side: LogicalSide
 
-    @Suppress("UNCHECKED_CAST")
-    fun castThis(): N = this as N
-
-    /**
-     * @return Create an empty new network of this type.
-     */
-    fun create(): N
-
-    /**
-     * @return A new network of this type from the given nodes and edges.
-     */
-    fun createWithNodesAndEdges(nodes: Sequence<C>, edges: Sequence<NetworkEdge>): N
-
     val nodes: Sequence<C>
 
     /**
-     * @return Every edge once, as (smaller, larger) location pairs.
+     * Every edge once, as (smaller, larger) location pairs.
      */
     val edges: Sequence<NetworkEdge>
 
     /**
-     * @return All connections, mapped by location.
+     * All connections, mapped by location.
      */
     val connections: Map<Loc4, Set<Loc4>>
 
@@ -72,6 +60,8 @@ interface INetwork<C : INetworkNode<C, N>, N : INetwork<C, N>> {
      * @return null if loc is not tracked, otherwise the locations it is connected to.
      */
     fun connectionsOf(loc: Loc4): Sequence<Loc4>?
+
+    val size: Int
 
     fun canConnectNodes(a: C, b: C): Boolean
 
@@ -85,41 +75,11 @@ interface INetwork<C : INetworkNode<C, N>, N : INetwork<C, N>> {
 
     fun removeConnectionLocs(a: Loc4, b: Loc4)
 
-    fun canAddNode(node: C): Boolean
-
     fun addNode(node: C)
 
     fun removeNode(node: C)
 
     fun removeNodes(nodes: Sequence<C>)
-
-    /**
-     * Called when a node is removed from the network. Maps out all sub-networks created by the split, creates and
-     * registers them, and informs nodes.
-     *
-     * @param edges All nodes that were connected to the nodes that were removed.
-     */
-    fun split(edges: Collection<Loc4>)
-
-    /**
-     * Called on sub networks by a main network, when that network is splitting apart.
-     */
-    fun onSplit(network: N)
-
-    /**
-     * Takes ownership of all of [network]'s nodes and connections.
-     */
-    fun takeover(network: N)
-
-    /**
-     * Called on networks by another network, when that network is incorporating this network.
-     */
-    fun onTakeover(network: N)
-
-    /**
-     * Simply remove all nodes from the network. Does not inform them.
-     */
-    fun clear()
 
     /**
      * Orders all nodes to refresh.
@@ -135,8 +95,6 @@ interface INetwork<C : INetworkNode<C, N>, N : INetwork<C, N>> {
      * Unregister this network from the Network Manager. Stops tick updates.
      */
     fun unregister()
-
-    val size: Int
 
     fun onTickStart()
 
@@ -179,56 +137,37 @@ interface INetworkNode<C : INetworkNode<C, N>, N : INetwork<C, N>> {
 
 data class NetworkEdge(val a: Loc4, val b: Loc4)
 
-interface INetworkManager {
-    fun getNetwork(id: Int): INetwork<*, *>?
-
-    fun removeNetwork(network: INetwork<*, *>)
-
-    fun addNetwork(network: INetwork<*, *>)
-
-    val networkCount: Int
-
-    val networks: Sequence<INetwork<*, *>>
-
-    fun nextId(): Int
-
-    fun clear()
-
-    fun onTickEnd()
-
-    fun onTickStart()
-
-    fun onChunkUnload(level: ILevel, chunk: ChunkCoord)
-}
-
-class NetworkManager : INetworkManager {
+/**
+ * The live networks on one logical side, ticked from server tick events.
+ */
+class NetworkManager {
     private val nextID = AtomicInteger(0)
     private val networkMap = HashMap<Int, INetwork<*, *>>()
 
-    override fun getNetwork(id: Int): INetwork<*, *>? = networkMap[id]
+    fun getNetwork(id: Int): INetwork<*, *>? = networkMap[id]
 
-    override fun removeNetwork(network: INetwork<*, *>) {
+    fun removeNetwork(network: INetwork<*, *>) {
         networkMap.remove(network.id)
     }
 
-    override fun addNetwork(network: INetwork<*, *>) {
+    fun addNetwork(network: INetwork<*, *>) {
         networkMap.putIfAbsent(network.id, network)
     }
 
-    override val networkCount: Int get() = networkMap.size
+    val networkCount: Int get() = networkMap.size
 
-    override val networks: Sequence<INetwork<*, *>> get() = networkMap.values.asSequence()
+    val networks: Sequence<INetwork<*, *>> get() = networkMap.values.asSequence()
 
-    override fun nextId(): Int = nextID.getAndIncrement()
+    fun nextId(): Int = nextID.getAndIncrement()
 
-    override fun clear() = networkMap.clear()
+    fun clear() = networkMap.clear()
 
     // Snapshot: callbacks may add or remove networks (splits, takeovers).
-    override fun onTickEnd() = networkMap.values.toList().forEach { it.onTickEnd() }
+    fun onTickEnd() = networkMap.values.toList().forEach { it.onTickEnd() }
 
-    override fun onTickStart() = networkMap.values.toList().forEach { it.onTickStart() }
+    fun onTickStart() = networkMap.values.toList().forEach { it.onTickStart() }
 
-    override fun onChunkUnload(level: ILevel, chunk: ChunkCoord) =
+    fun onChunkUnload(level: ILevel, chunk: ChunkCoord) =
         networkMap.values.toList().forEach { it.onChunkUnload(level, chunk) }
 }
 
@@ -243,7 +182,18 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(overri
 
     abstract fun networkModule(): IModule<C>
 
-    override fun createWithNodesAndEdges(nodes: Sequence<C>, edges: Sequence<NetworkEdge>): N {
+    /**
+     * @return An empty new network of this type, e.g. for each part of a split.
+     */
+    protected abstract fun create(): N
+
+    @Suppress("UNCHECKED_CAST")
+    protected fun castThis(): N = this as N
+
+    /**
+     * @return A new network of this type holding [nodes] and [edges], without informing the nodes.
+     */
+    internal fun createWithNodesAndEdges(nodes: Sequence<C>, edges: Sequence<NetworkEdge>): N {
         val net = create()
         nodes.forEach { net.addNodeSilently(it) }
         edges.forEach { net.addConnectionSilently(it.a, it.b) }
@@ -294,7 +244,10 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(overri
         split(listOf(a, b))
     }
 
-    override fun canAddNode(node: C): Boolean = true
+    /**
+     * Whether [node] may join this network at all; checked before the node's own [INetworkNode.canAdd].
+     */
+    protected open fun canAddNode(node: C): Boolean = true
 
     /**
      * Adds the node, first removing it from any other network it belongs to, then connects it to every node here it
@@ -341,7 +294,13 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(overri
         }
     }
 
-    override fun split(edges: Collection<Loc4>) {
+    /**
+     * Called when nodes or connections were removed. Maps out the sub-networks left behind, creates and registers
+     * one per part (each told [onSplit]), and empties this network if it fell apart.
+     *
+     * @param edges Locations that were connected to what was removed.
+     */
+    protected fun split(edges: Collection<Loc4>) {
         val workingSet = HashSet(edges)
         val networks = ArrayList<Set<Loc4>>()
         while (workingSet.isNotEmpty()) {
@@ -367,9 +326,15 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(overri
         unregister()
     }
 
-    override fun onSplit(network: N) {}
+    /**
+     * Called on each sub-network created when [network] splits apart.
+     */
+    protected open fun onSplit(network: N) {}
 
-    override fun takeover(network: N) {
+    /**
+     * Takes ownership of all of [network]'s nodes and connections.
+     */
+    private fun takeover(network: N) {
         network.onTakeover(castThis())
         network.nodes.toList().forEach { addNodeSilently(it) }
         network.edges.toList().forEach { addConnectionSilently(it.a, it.b) }
@@ -377,9 +342,15 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(overri
         network.unregister()
     }
 
-    override fun onTakeover(network: N) {}
+    /**
+     * Called on a network when [network] incorporates it.
+     */
+    protected open fun onTakeover(network: N) {}
 
-    override fun clear() {
+    /**
+     * Removes all nodes and connections without informing the nodes.
+     */
+    protected fun clear() {
         nodeMap.clear()
         connectionMap.clear()
         locationTracker.clear()
