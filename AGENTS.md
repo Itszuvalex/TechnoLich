@@ -38,6 +38,10 @@ Mod metadata is generated from `src/main/templates/META-INF/neoforge.mods.toml` 
 
 NeoForge's API changes a lot between versions and many online examples are stale. Prefer these sources, in order:
 
+0. **`~/Repos/neoforge-docs/CHEATSHEET.md`** — a short, port-tested reference distilled from doing
+   this port (capabilities, transactions, Value I/O, data components, renames, game tests, the
+   NixOS toolchain fix). Not a substitute for the real docs, but check it before diving into the
+   mirror below for anything that sounds like a Forge→NeoForge rename or gotcha.
 1. **Decompiled, NeoForge-patched Minecraft sources** (always exactly the version we build against): `build/moddev/artifacts/minecraft-patched-<version>-sources.jar` (created by any Gradle build). NeoForge classes: the `neoforge-<version>-universal.jar` in the Gradle cache (`~/.gradle/caches/modules-2/files-2.1/net.neoforged/neoforge/`); use `javap` to check signatures.
 2. **NeoForge docs**: https://docs.neoforged.net/docs/ (the unversioned pages are 26.1). Key pages for this codebase: Capabilities (`inventories/capabilities`), Transactions (`inventories/transactions`), Value I/O (`datastorage/valueio`), Block Entities (`blockentities/`), Game Tests (`misc/gametest`), Networking (`networking/`).
 3. **Porting primers**: https://docs.neoforged.net/primer/docs/ — per-version Minecraft change lists (e.g. `1.21.5` for Value I/O, `26.1` for the latest renames).
