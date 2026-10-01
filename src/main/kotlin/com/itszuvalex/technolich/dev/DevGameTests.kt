@@ -119,7 +119,7 @@ object DevGameTests {
         helper.assertTrue(loaded is DevFragBlockEntity, "Loaded wrong block entity: $loaded")
         val copy = loaded as DevFragBlockEntity
         helper.assertValueEqual(be.colorable.getColor(), copy.colorable.getColor(), "color")
-        helper.assertValueEqual(3, copy.inventory.get(0).stackSize(), "inventory count")
+        helper.assertValueEqual(3, copy.inventory.get(0).stackSize, "inventory count")
         helper.assertTrue(copy.inventory.get(0).toMinecraft().`is`(Items.DIAMOND), "inventory item")
         helper.succeed()
     }
@@ -135,7 +135,7 @@ object DevGameTests {
         client.handleUpdateTag(TagValueInput.create(ProblemReporter.DISCARDING, registries, tag))
 
         helper.assertValueEqual(99.toByte(), client.getModule(Modules.COLORABLE, null)!!.getColor().blue, "synced color")
-        helper.assertTrue(client.inventory.get(0).isEmpty(), "Inventory is LEVEL scope only and must not sync")
+        helper.assertTrue(client.inventory.get(0).isEmpty, "Inventory is LEVEL scope only and must not sync")
         helper.succeed()
     }
 
@@ -148,13 +148,13 @@ object DevGameTests {
             handler!!.insert(ItemResource.of(Items.DIAMOND), 5, tx)
             // Aborted: must roll back
         }
-        helper.assertTrue(be.inventory.get(0).isEmpty(), "Aborted transaction was not rolled back")
+        helper.assertTrue(be.inventory.get(0).isEmpty, "Aborted transaction was not rolled back")
 
         Transaction.openRoot().use { tx ->
             helper.assertValueEqual(5, handler!!.insert(ItemResource.of(Items.DIAMOND), 5, tx), "inserted")
             tx.commit()
         }
-        helper.assertValueEqual(5, be.inventory.get(0).stackSize(), "committed count")
+        helper.assertValueEqual(5, be.inventory.get(0).stackSize, "committed count")
         helper.succeed()
     }
 
@@ -222,7 +222,7 @@ object DevGameTests {
         placed.applyComponents(components, DataComponentPatch.EMPTY)
 
         helper.assertValueEqual(color, placed.colorable.getColor(), "color from item")
-        helper.assertTrue(placed.inventory.get(0).isEmpty(), "Inventory is LEVEL scope only and must not ride on the item")
+        helper.assertTrue(placed.inventory.get(0).isEmpty, "Inventory is LEVEL scope only and must not ride on the item")
         helper.succeed()
     }
 
@@ -242,15 +242,15 @@ object DevGameTests {
 
         Transaction.openRoot().use { tx -> helper.assertValueEqual(4, handler.insert(0, diamond, 10, tx), "inserted into limited slot") }
         helper.assertValueEqual(0, changes, "aborted transaction notified")
-        helper.assertTrue(storage.get(0).isEmpty(), "aborted transaction not rolled back")
+        helper.assertTrue(storage.get(0).isEmpty, "aborted transaction not rolled back")
 
         Transaction.openRoot().use { tx ->
             handler.insert(0, diamond, 10, tx)
             handler.insert(1, diamond, 10, tx)
             tx.commit()
         }
-        helper.assertValueEqual(4, storage.get(0).stackSize(), "limited slot count")
-        helper.assertValueEqual(10, storage.get(1).stackSize(), "unlimited slot count")
+        helper.assertValueEqual(4, storage.get(0).stackSize, "limited slot count")
+        helper.assertValueEqual(10, storage.get(1).stackSize, "unlimited slot count")
         helper.assertValueEqual(1, changes, "notifications on commit")
         helper.succeed()
     }

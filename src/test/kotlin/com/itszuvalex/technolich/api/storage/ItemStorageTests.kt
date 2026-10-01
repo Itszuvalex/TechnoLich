@@ -46,7 +46,7 @@ abstract class ItemStorageTestBase {
 
     private fun state() = TestState()
 
-    private fun total(storage: IItemStorage) = (0 until storage.size()).sumOf { storage.get(it).stackSize() }
+    private fun total(storage: IItemStorage) = (0 until storage.size).sumOf { storage.get(it).stackSize }
 
     // 1.12.2 wrote back a copy of the source taken before the insert, so moving a slot into itself (or into a view of
     // the same slot) replaced the merged stack with the leftover and destroyed the items.
@@ -54,7 +54,7 @@ abstract class ItemStorageTestBase {
     fun TransferSlotIntoStorageSlot_SameSlot_KeepsItems() {
         val state = state()
         val remaining = state.storage.transferSlotIntoStorageSlot(2, state.storage, 2, 10)
-        Assertions.assertEquals(10, state.storage.get(2).stackSize())
+        Assertions.assertEquals(10, state.storage.get(2).stackSize)
         Assertions.assertEquals(0, remaining)
     }
 
@@ -63,7 +63,7 @@ abstract class ItemStorageTestBase {
         val storage = storageWithSize(1)
         storage.setSlot(0, TestableIItemStack(1, 10))
         storage.transferSlotIntoStorage(0, storage, 10)
-        Assertions.assertEquals(10, storage.get(0).stackSize())
+        Assertions.assertEquals(10, storage.get(0).stackSize)
     }
 
     @Test
@@ -80,14 +80,14 @@ abstract class ItemStorageTestBase {
     fun Split_NegativeAmount_ChangesNothing() {
         val state = state()
         MCAssert.assertIItemStackEmpty(state.storage.split(2, -5))
-        Assertions.assertEquals(10, state.storage.get(2).stackSize())
+        Assertions.assertEquals(10, state.storage.get(2).stackSize)
     }
 
     @Test
     fun Split_Zero_ReturnsEmpty() {
         val state = state()
         MCAssert.assertIItemStackEmpty(state.storage.split(2, 0))
-        Assertions.assertEquals(10, state.storage.get(2).stackSize())
+        Assertions.assertEquals(10, state.storage.get(2).stackSize)
     }
 
     @Test
@@ -96,13 +96,13 @@ abstract class ItemStorageTestBase {
         MCAssert.assertIItemStackEmpty(storage.get(0))
         storage.setSlot(0, TestableIItemStack(1, 3))
         MCAssert.assertIItemStackNotEmpty(storage.get(0))
-        Assertions.assertEquals(3, storage.get(0).stackSize())
+        Assertions.assertEquals(3, storage.get(0).stackSize)
     }
 
     @Test
     fun Size_Always_EqualsArrayLength() {
         val state = state()
-        Assertions.assertEquals(state.testLength, state.storage.size())
+        Assertions.assertEquals(state.testLength, state.storage.size)
     }
 
     @Test
@@ -115,9 +115,9 @@ abstract class ItemStorageTestBase {
         val state = state()
         val ret = state.storage.split(1, 2)
         MCAssert.assertIItemStackNotEmpty(ret)
-        Assertions.assertEquals(2, ret.stackSize())
+        Assertions.assertEquals(2, ret.stackSize)
         MCAssert.assertIItemStackNotEmpty(state.storage.get(1))
-        Assertions.assertEquals(3, state.storage.get(1).stackSize())
+        Assertions.assertEquals(3, state.storage.get(1).stackSize)
     }
 
     @Test
@@ -125,7 +125,7 @@ abstract class ItemStorageTestBase {
         val state = state()
         val ret = state.storage.split(1, 5)
         MCAssert.assertIItemStackNotEmpty(ret)
-        Assertions.assertEquals(5, ret.stackSize())
+        Assertions.assertEquals(5, ret.stackSize)
         MCAssert.assertIItemStackEmpty(state.storage.get(1))
     }
 
@@ -134,7 +134,7 @@ abstract class ItemStorageTestBase {
         val state = state()
         val ret = state.storage.split(1, 10)
         MCAssert.assertIItemStackNotEmpty(ret)
-        Assertions.assertEquals(5, ret.stackSize())
+        Assertions.assertEquals(5, ret.stackSize)
         MCAssert.assertIItemStackEmpty(state.storage.get(1))
     }
 
@@ -154,17 +154,17 @@ abstract class ItemStorageTestBase {
         MCAssert.assertIItemStackEmpty(state.storage.get(9))
         MCAssert.assertIItemStackEmpty(state.storage.insert(9, ins))
         Assertions.assertTrue(state.storage.get(9).isItemEqual(ins))
-        Assertions.assertEquals(ins.stackSize(), state.storage.get(9).stackSize())
+        Assertions.assertEquals(ins.stackSize, state.storage.get(9).stackSize)
     }
 
     @Test
     fun Insert_ItemIntoMatchingItemStackWithRoom_ModifyReturnEmpty() {
         val state = state()
         val ins = TestableIItemStack(1, 3)
-        Assertions.assertEquals(5, state.storage.get(1).stackSize())
+        Assertions.assertEquals(5, state.storage.get(1).stackSize)
         Assertions.assertTrue(ins.isItemEqual(state.storage.get(1)))
         MCAssert.assertIItemStackEmpty(state.storage.insert(1, ins))
-        Assertions.assertEquals(8, state.storage.get(1).stackSize())
+        Assertions.assertEquals(8, state.storage.get(1).stackSize)
     }
 
     @Test
@@ -174,8 +174,8 @@ abstract class ItemStorageTestBase {
         val ret = state.storage.insert(1, ins)
         MCAssert.assertIItemStackNotEmpty(ret)
         Assertions.assertTrue(ins.isItemEqual(ret))
-        Assertions.assertEquals(MCConstants.ITEMSTACK_MAX, state.storage.get(1).stackSize())
-        Assertions.assertEquals(4, ret.stackSize())
+        Assertions.assertEquals(MCConstants.ITEMSTACK_MAX, state.storage.get(1).stackSize)
+        Assertions.assertEquals(4, ret.stackSize)
     }
 
     @Test
@@ -185,9 +185,9 @@ abstract class ItemStorageTestBase {
         MCAssert.assertIItemStackEmpty(state.storage.get(9))
         val ret = state.storage.insert(9, ins)
         Assertions.assertTrue(ret.isItemEqual(ins))
-        Assertions.assertEquals(200 - MCConstants.ITEMSTACK_MAX, ret.stackSize())
+        Assertions.assertEquals(200 - MCConstants.ITEMSTACK_MAX, ret.stackSize)
         Assertions.assertTrue(state.storage.get(9).isItemEqual(ins))
-        Assertions.assertEquals(state.storage.maxStackSize(9), state.storage.get(9).stackSize())
+        Assertions.assertEquals(state.storage.maxStackSize(9), state.storage.get(9).stackSize)
     }
 
     @Test
@@ -197,9 +197,9 @@ abstract class ItemStorageTestBase {
         val slotCopy = state.storage.get(1).copy()
         val ret = state.storage.insert(1, ins)
         Assertions.assertTrue(ret.isItemEqual(ins))
-        Assertions.assertEquals(ins.stackSize(), ret.stackSize())
+        Assertions.assertEquals(ins.stackSize, ret.stackSize)
         Assertions.assertTrue(slotCopy.isItemEqual(state.storage.get(1)))
-        Assertions.assertEquals(slotCopy.stackSize(), state.storage.get(1).stackSize())
+        Assertions.assertEquals(slotCopy.stackSize, state.storage.get(1).stackSize)
     }
 
     @Test
@@ -208,7 +208,7 @@ abstract class ItemStorageTestBase {
         val filling = storageWithSize(1).also { it.setSlot(0, IItemStack.Empty) }
         val ret = emptying.transferIntoStorage(filling, 1)
         MCAssert.assertIItemStackEmpty(emptying.get(0))
-        Assertions.assertEquals(1, filling.get(0).stackSize())
+        Assertions.assertEquals(1, filling.get(0).stackSize)
         Assertions.assertEquals(0, ret)
     }
 
@@ -217,8 +217,8 @@ abstract class ItemStorageTestBase {
         val emptying = storageWithSize(1).also { it.setSlot(0, TestableIItemStack(1, 2)) }
         val filling = storageWithSize(1)
         val ret = emptying.transferIntoStorage(filling, 1)
-        Assertions.assertEquals(1, emptying.get(0).stackSize())
-        Assertions.assertEquals(1, filling.get(0).stackSize())
+        Assertions.assertEquals(1, emptying.get(0).stackSize)
+        Assertions.assertEquals(1, filling.get(0).stackSize)
         Assertions.assertEquals(0, ret)
     }
 
@@ -228,7 +228,7 @@ abstract class ItemStorageTestBase {
         val filling = storageWithSize(1)
         val ret = emptying.transferIntoStorage(filling, 2)
         MCAssert.assertIItemStackEmpty(emptying.get(0))
-        Assertions.assertEquals(1, filling.get(0).stackSize())
+        Assertions.assertEquals(1, filling.get(0).stackSize)
         Assertions.assertEquals(1, ret)
     }
 
@@ -240,9 +240,9 @@ abstract class ItemStorageTestBase {
             it.setSlot(1, TestableIItemStack(1, 1))
         }
         val ret = emptying.transferIntoStorage(filling, 2)
-        Assertions.assertEquals(3, emptying.get(0).stackSize())
-        Assertions.assertEquals(MCConstants.ITEMSTACK_MAX, filling.get(0).stackSize())
-        Assertions.assertEquals(2, filling.get(1).stackSize())
+        Assertions.assertEquals(3, emptying.get(0).stackSize)
+        Assertions.assertEquals(MCConstants.ITEMSTACK_MAX, filling.get(0).stackSize)
+        Assertions.assertEquals(2, filling.get(1).stackSize)
         Assertions.assertEquals(0, ret)
     }
 
@@ -271,7 +271,7 @@ abstract class ItemStorageTestBase {
         val ret = emptying.transferIntoStorage(filling, 2)
         MCAssert.assertIItemStackEmpty(emptying.get(0))
         MCAssert.assertIItemStackEmpty(emptying.get(1))
-        Assertions.assertEquals(2, filling.get(0).stackSize())
+        Assertions.assertEquals(2, filling.get(0).stackSize)
         Assertions.assertEquals(0, ret)
     }
 
@@ -282,7 +282,7 @@ abstract class ItemStorageTestBase {
         val ret = emptying.transferIntoStorage(filling, 1)
         MCAssert.assertIItemStackEmpty(emptying.get(0))
         MCAssert.assertIItemStackEmpty(filling.get(0))
-        Assertions.assertEquals(2, filling.get(1).stackSize())
+        Assertions.assertEquals(2, filling.get(1).stackSize)
         Assertions.assertEquals(0, ret)
     }
 
@@ -291,8 +291,8 @@ abstract class ItemStorageTestBase {
         val emptying = storageWithSize(1).also { it.setSlot(0, TestableIItemStack(1, 1)) }
         val filling = storageWithSize(1).also { it.setSlot(0, TestableIItemStack(2, 1)) }
         val ret = emptying.transferIntoStorage(filling, 1)
-        Assertions.assertEquals(1, emptying.get(0).stackSize())
-        Assertions.assertEquals(1, filling.get(0).stackSize())
+        Assertions.assertEquals(1, emptying.get(0).stackSize)
+        Assertions.assertEquals(1, filling.get(0).stackSize)
         Assertions.assertEquals(1, ret)
     }
 
@@ -302,12 +302,12 @@ abstract class ItemStorageTestBase {
         val storage2 = ItemStorageArray(state.testLength)
         val nbt = TestIO.write(state.storage::serialize)
         storage2.deserialize(TestIO.read(nbt))
-        for (i in 0 until state.storage.size()) {
-            Assertions.assertEquals(state.storage.get(i).isEmpty(), storage2.get(i).isEmpty())
-            if (!state.storage.get(i).isEmpty()) {
+        for (i in 0 until state.storage.size) {
+            Assertions.assertEquals(state.storage.get(i).isEmpty, storage2.get(i).isEmpty)
+            if (!state.storage.get(i).isEmpty) {
                 Assertions.assertEquals((state.storage.get(i) as TestableIItemStack).testItem, (storage2.get(i) as TestableIItemStack).testItem)
-                Assertions.assertEquals(state.storage.get(i).stackSize(), storage2.get(i).stackSize())
-                Assertions.assertEquals(state.storage.get(i).damage(), storage2.get(i).damage())
+                Assertions.assertEquals(state.storage.get(i).stackSize, storage2.get(i).stackSize)
+                Assertions.assertEquals(state.storage.get(i).damage, storage2.get(i).damage)
                 Assertions.assertNotSame(state.storage.get(i), storage2.get(i))
             }
         }
@@ -321,7 +321,7 @@ abstract class ItemStorageTestBase {
         target.setSlot(9, TestableIItemStack(4, 7))
         target.deserialize(TestIO.read(TestIO.write(state.storage::serialize)))
         MCAssert.assertIItemStackEmpty(target.get(9))
-        Assertions.assertEquals(state.storage.get(1).stackSize(), target.get(1).stackSize())
+        Assertions.assertEquals(state.storage.get(1).stackSize, target.get(1).stackSize)
     }
 
     @Test
@@ -331,8 +331,8 @@ abstract class ItemStorageTestBase {
         val ins = TestableIItemStack(1, 3).also { it.testStackMax = 4 }
         Assertions.assertTrue(ins.isItemEqual(storage.get(0)))
         val ret = storage.insert(0, ins)
-        Assertions.assertEquals(10, storage.get(0).stackSize())
-        Assertions.assertEquals(3, ret.stackSize())
+        Assertions.assertEquals(10, storage.get(0).stackSize)
+        Assertions.assertEquals(3, ret.stackSize)
         Assertions.assertTrue(ret.isItemEqual(ins))
     }
 
@@ -341,8 +341,8 @@ abstract class ItemStorageTestBase {
         val storage = storageWithSize(1)
         val ins = TestableIItemStack(1, 5)
         storage.insert(0, ins)
-        ins.setStackSize(1)
-        Assertions.assertEquals(5, storage.get(0).stackSize())
+        ins.stackSize = 1
+        Assertions.assertEquals(5, storage.get(0).stackSize)
     }
 
     companion object {

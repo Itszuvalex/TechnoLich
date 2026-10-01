@@ -28,12 +28,12 @@ import java.util.Optional
 object MCAssert {
     fun assertIItemStackEmpty(stack: IItemStack) {
         if (stack === IItemStack.Empty) return
-        Assertions.assertTrue(stack.isEmpty())
+        Assertions.assertTrue(stack.isEmpty)
     }
 
     fun assertIItemStackNotEmpty(stack: IItemStack) {
         Assertions.assertNotSame(stack, IItemStack.Empty)
-        Assertions.assertFalse(stack.isEmpty())
+        Assertions.assertFalse(stack.isEmpty)
     }
 
     fun failVanillaClass(methodName: String): Nothing =
@@ -84,20 +84,22 @@ class TestableIItemStack(
 
     constructor(item: Int) : this(item, 1, 0)
 
-    override fun item(): Identifier = Identifier.fromNamespaceAndPath(TechnoLich.ID, testItem.toString().replace('-', 'n'))
-    override fun stackSize(): Int = testStack
-    override fun setStackSize(size: Int) {
-        testStack = size
-    }
-    override fun stackSizeMax(): Int = testStackMax
-    override fun damage(): Int = testDamage
-    override fun setDamage(damage: Int) {
-        testDamage = damage
-    }
-    override fun damageMax(): Int = testDamageMax
-    override fun components(): DataComponentPatch = DataComponentPatch.EMPTY
+    override val item: Identifier get() = Identifier.fromNamespaceAndPath(TechnoLich.ID, testItem.toString().replace('-', 'n'))
+    override var stackSize: Int
+        get() = testStack
+        set(value) {
+            testStack = value
+        }
+    override val stackSizeMax: Int get() = testStackMax
+    override var damage: Int
+        get() = testDamage
+        set(value) {
+            testDamage = value
+        }
+    override val damageMax: Int get() = testDamageMax
+    override val components: DataComponentPatch get() = DataComponentPatch.EMPTY
     override fun toMinecraft(): ItemStack = Assertions.fail("toMinecraft shouldn't be reached from test apis")
-    override fun isEmpty(): Boolean = stackSize() <= 0
+    override val isEmpty: Boolean get() = stackSize <= 0
     override fun copy(): IItemStack = TestableIItemStack(testItem, testStack, testDamage).also { it.testNBT = testNBT?.copy() }
     override fun isItemEqual(other: IItemStack): Boolean {
         if (other !is TestableIItemStack) {

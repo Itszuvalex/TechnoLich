@@ -14,39 +14,37 @@ import net.minecraft.world.item.ItemStack
  * Engine seam over [ItemStack], so storage logic can be unit tested without vanilla items.
  */
 interface IItemStack : IModuleProvider {
-    fun item(): Identifier
+    val item: Identifier
 
-    fun stackSize(): Int
-
-    fun setStackSize(size: Int)
+    var stackSize: Int
 
     /**
      * THIS IS NOT VALIDATED. USE ONLY WHEN YOU KNOW `change` IS SAFE.
      *
      * @param change Amount to modify (+1, -1).
      */
-    fun modifyStackSize(change: Int) = setStackSize(stackSize() + change)
+    fun modifyStackSize(change: Int) {
+        stackSize += change
+    }
 
-    fun stackSizeMax(): Int
+    val stackSizeMax: Int
 
-    fun damage(): Int
+    var damage: Int
 
-    fun setDamage(damage: Int)
-
-    fun damageMax(): Int
+    val damageMax: Int
 
     /**
-     * @return Data components that differ from the item's defaults.
+     * Data components that differ from the item's defaults.
      */
-    fun components(): DataComponentPatch
+    val components: DataComponentPatch
 
-    fun hasComponents(): Boolean = !components().isEmpty
+    val hasComponents: Boolean get() = !components.isEmpty
 
     fun toMinecraft(): ItemStack
 
-    fun isEmpty(): Boolean
+    val isEmpty: Boolean
 
-    fun room(): Int = stackSizeMax() - stackSize()
+    val room: Int get() = stackSizeMax - stackSize
 
     fun copy(): IItemStack
 
@@ -56,20 +54,22 @@ interface IItemStack : IModuleProvider {
         @JvmField
         val Empty: IItemStack = object : IItemStack {
             override fun <T : Any> getModule(module: IModule<T>, side: Direction?): T? = null
-            override fun item(): Identifier = BuiltInRegistries.ITEM.defaultKey
-            override fun stackSize(): Int = 0
-            override fun setStackSize(size: Int) {}
-            override fun stackSizeMax(): Int = MCConstants.ITEMSTACK_MAX
-            override fun damage(): Int = 0
-            override fun setDamage(damage: Int) {}
-            override fun damageMax(): Int = 0
-            override fun components(): DataComponentPatch = DataComponentPatch.EMPTY
-            override fun hasComponents(): Boolean = false
+            override val item: Identifier get() = BuiltInRegistries.ITEM.defaultKey
+            override var stackSize: Int
+                get() = 0
+                set(_) {}
+            override val stackSizeMax: Int get() = MCConstants.ITEMSTACK_MAX
+            override var damage: Int
+                get() = 0
+                set(_) {}
+            override val damageMax: Int get() = 0
+            override val components: DataComponentPatch get() = DataComponentPatch.EMPTY
+            override val hasComponents: Boolean get() = false
             override fun toMinecraft(): ItemStack = ItemStack.EMPTY
-            override fun isEmpty(): Boolean = true
-            override fun room(): Int = 0
+            override val isEmpty: Boolean get() = true
+            override val room: Int get() = 0
             override fun copy(): IItemStack = this
-            override fun isItemEqual(other: IItemStack): Boolean = other.isEmpty()
+            override fun isItemEqual(other: IItemStack): Boolean = other.isEmpty
             override fun toString(): String = "IItemStack.Empty"
         }
 

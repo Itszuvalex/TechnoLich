@@ -10,29 +10,29 @@ import kotlin.math.min
  * A double-valued energy store.
  */
 interface IBattery : ValueIOSerializable {
-    fun storage(): Double
-
     /**
-     * Sets the stored energy. Batteries with a change listener notify it (see [setChanged]).
+     * The stored energy. Setting it notifies batteries with a change listener (see [setChanged]).
      */
-    fun setStorage(storage: Double)
+    var storage: Double
 
     /**
      * Sets the stored energy without notifying any change listener, e.g. inside a NeoForge transaction.
      */
-    fun setStorageQuietly(storage: Double) = setStorage(storage)
+    fun setStorageQuietly(storage: Double) {
+        this.storage = storage
+    }
 
-    fun maxStorage(): Double
+    val maxStorage: Double
 
-    fun room(): Double = maxStorage() - storage()
+    val room: Double get() = maxStorage - storage
 
     /**
      * @param amt Energy to add; negative amounts are treated as 0.
      * @return Energy actually added.
      */
     fun fill(amt: Double): Double {
-        val toFill = max(0.0, min(amt, room()))
-        if (toFill > 0) setStorage(storage() + toFill)
+        val toFill = max(0.0, min(amt, room))
+        if (toFill > 0) storage += toFill
         return toFill
     }
 
@@ -41,8 +41,8 @@ interface IBattery : ValueIOSerializable {
      * @return Energy actually removed.
      */
     fun drain(amt: Double): Double {
-        val toDrain = max(0.0, min(amt, storage()))
-        if (toDrain > 0) setStorage(storage() - toDrain)
+        val toDrain = max(0.0, min(amt, storage))
+        if (toDrain > 0) storage -= toDrain
         return toDrain
     }
 
@@ -54,9 +54,10 @@ interface IBattery : ValueIOSerializable {
     companion object {
         @JvmField
         val Empty: IBattery = object : IBattery {
-            override fun storage(): Double = 0.0
-            override fun setStorage(storage: Double) {}
-            override fun maxStorage(): Double = 0.0
+            override var storage: Double
+                get() = 0.0
+                set(_) {}
+            override val maxStorage: Double get() = 0.0
             override fun serialize(output: ValueOutput) {}
             override fun deserialize(input: ValueInput) {}
         }

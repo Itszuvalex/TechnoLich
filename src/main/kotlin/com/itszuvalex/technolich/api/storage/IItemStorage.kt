@@ -12,9 +12,9 @@ import kotlin.math.min
  * index ("0", "1", ...), encoded with [IItemStack.codec].
  */
 interface IItemStorage : ValueIOSerializable {
-    fun get(index: Int): IItemStack
+    operator fun get(index: Int): IItemStack
 
-    fun size(): Int
+    val size: Int
 
     /**
      * Replaces a slot. Storages with a change listener notify it (see [setChanged]).
@@ -29,7 +29,7 @@ interface IItemStorage : ValueIOSerializable {
 
     fun canInsert(index: Int, stack: IItemStack): Boolean = true
 
-    fun maxStackSize(index: Int): Int = min(MCConstants.ITEMSTACK_MAX, get(index).stackSizeMax())
+    fun maxStackSize(index: Int): Int = min(MCConstants.ITEMSTACK_MAX, get(index).stackSizeMax)
 
     /**
      * Removes up to [amount] items from the slot.
@@ -41,12 +41,12 @@ interface IItemStorage : ValueIOSerializable {
         if (amount <= 0) return IItemStack.Empty
         val slot = get(index)
         val ret = slot.copy()
-        if (amount >= slot.stackSize()) {
+        if (amount >= slot.stackSize) {
             setSlot(index, IItemStack.Empty)
         } else {
             slot.modifyStackSize(-amount)
             setSlot(index, slot) // Trigger updates
-            ret.setStackSize(amount)
+            ret.stackSize = amount
         }
         return ret
     }
@@ -57,19 +57,19 @@ interface IItemStorage : ValueIOSerializable {
      * @return IItemStack containing the leftovers from stack.
      */
     fun insert(index: Int, stack: IItemStack): IItemStack {
-        if (stack.isEmpty()) return stack
+        if (stack.isEmpty) return stack
 
-        val max = min(stack.stackSizeMax(), maxStackSize(index))
+        val max = min(stack.stackSizeMax, maxStackSize(index))
         val slot = get(index)
-        if (slot.isEmpty()) {
-            if (stack.stackSize() <= max) {
+        if (slot.isEmpty) {
+            if (stack.stackSize <= max) {
                 // Copy so the caller's later mutations can't reach into this storage.
                 setSlot(index, stack.copy())
                 return IItemStack.Empty
             }
 
             val sc = stack.copy()
-            sc.setStackSize(max)
+            sc.stackSize = max
             val ret = stack.copy()
             ret.modifyStackSize(-max)
             setSlot(index, sc)
@@ -77,11 +77,11 @@ interface IItemStorage : ValueIOSerializable {
         }
 
         if (slot.isItemEqual(stack)) {
-            val room = max - slot.stackSize()
+            val room = max - slot.stackSize
             // The slot may already hold more than this insert allows (e.g. a smaller stack limit); insert nothing.
             if (room <= 0) return stack
-            if (stack.stackSize() <= room) {
-                slot.modifyStackSize(stack.stackSize())
+            if (stack.stackSize <= room) {
+                slot.modifyStackSize(stack.stackSize)
                 setSlot(index, slot)
                 return IItemStack.Empty
             }
@@ -106,15 +106,15 @@ interface IItemStorage : ValueIOSerializable {
     fun transferSlotIntoStorageSlot(slot: Int, storage: IItemStorage, targetSlot: Int, amount: Int): Int {
         if (amount <= 0) return amount
         val source = get(slot)
-        if (source.isEmpty()) return amount
+        if (source.isEmpty) return amount
         val moving = source.copy()
-        moving.setStackSize(min(moving.stackSize(), amount))
-        val transferred = moving.stackSize() - storage.insert(targetSlot, moving).stackSize()
+        moving.stackSize = min(moving.stackSize, amount)
+        val transferred = moving.stackSize - storage.insert(targetSlot, moving).stackSize
         if (transferred <= 0) return amount
         // Re-read: the insert may have changed this slot (same storage and slot, or a view of it).
         val after = get(slot).copy()
         after.modifyStackSize(-transferred)
-        setSlot(slot, if (after.stackSize() <= 0) IItemStack.Empty else after)
+        setSlot(slot, if (after.stackSize <= 0) IItemStack.Empty else after)
         return amount - transferred
     }
 
@@ -125,15 +125,15 @@ interface IItemStorage : ValueIOSerializable {
      */
     fun transferSlotIntoStorage(slot: Int, storage: IItemStorage, amount: Int): Int {
         var transferRemaining = amount
-        for (i in 0 until storage.size()) {
-            if (storage.get(i).isEmpty() || !storage.canInsert(i, get(slot))) continue
+        for (i in 0 until storage.size) {
+            if (storage.get(i).isEmpty || !storage.canInsert(i, get(slot))) continue
             transferRemaining = transferSlotIntoStorageSlot(slot, storage, i, transferRemaining)
             if (transferRemaining <= 0) return 0
         }
-        if (get(slot).isEmpty()) return transferRemaining
+        if (get(slot).isEmpty) return transferRemaining
 
-        for (i in 0 until storage.size()) {
-            if (!storage.get(i).isEmpty() || !storage.canInsert(i, get(slot))) continue
+        for (i in 0 until storage.size) {
+            if (!storage.get(i).isEmpty || !storage.canInsert(i, get(slot))) continue
             transferRemaining = transferSlotIntoStorageSlot(slot, storage, i, transferRemaining)
             if (transferRemaining <= 0) break
         }
@@ -147,8 +147,8 @@ interface IItemStorage : ValueIOSerializable {
         if (storage === this) return amount
 
         var transferRemaining = amount
-        for (i in 0 until size()) {
-            if (get(i).isEmpty()) continue
+        for (i in 0 until size) {
+            if (get(i).isEmpty) continue
             transferRemaining = transferSlotIntoStorage(i, storage, transferRemaining)
             if (transferRemaining <= 0) break
         }
@@ -159,17 +159,17 @@ interface IItemStorage : ValueIOSerializable {
      * Replaces every slot. [serialize] omits empty slots, so a missing slot is cleared rather than kept.
      */
     override fun deserialize(input: ValueInput) {
-        for (i in 0 until size()) setSlot(i, input.read(i.toString(), IItemStack.codec()).orElse(IItemStack.Empty))
+        for (i in 0 until size) setSlot(i, input.read(i.toString(), IItemStack.codec()).orElse(IItemStack.Empty))
     }
 
     override fun serialize(output: ValueOutput) {
-        for (i in 0 until size()) {
+        for (i in 0 until size) {
             val stack = get(i)
-            if (!stack.isEmpty()) output.store(i.toString(), IItemStack.codec(), stack)
+            if (!stack.isEmpty) output.store(i.toString(), IItemStack.codec(), stack)
         }
     }
 
-    fun isEmpty(): Boolean = (0 until size()).all { get(it).isEmpty() }
+    val isEmpty: Boolean get() = (0 until size).all { get(it).isEmpty }
 
     /**
      * Notifies the storage's change listener, if any (e.g. the owning block entity's setChanged).
@@ -180,7 +180,7 @@ interface IItemStorage : ValueIOSerializable {
         @JvmField
         val Empty: IItemStorage = object : IItemStorage {
             override fun get(index: Int): IItemStack = IItemStack.Empty
-            override fun size(): Int = 0
+            override val size: Int get() = 0
             override fun setSlot(index: Int, stack: IItemStack) {}
         }
     }

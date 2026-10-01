@@ -66,7 +66,7 @@ class FragDropInventory @JvmOverloads constructor(
 
     override fun onRemove(level: ILevel, pos: BlockPos, blockStatePrev: BlockState) {
         if (!shouldDrop) return
-        for (i in 0 until storage.size()) {
+        for (i in 0 until storage.size) {
             drop(level, pos, storage.get(i))
             storage.setSlot(i, IItemStack.Empty)
         }

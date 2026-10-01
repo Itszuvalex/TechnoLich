@@ -12,7 +12,7 @@ object InventoryUtils {
      */
     @JvmStatic
     fun dropItem(level: ILevel, pos: BlockPos, item: IItemStack) {
-        if (item.isEmpty()) return
+        if (item.isEmpty) return
         Containers.dropItemStack(level.toMinecraft(), pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble(), item.toMinecraft())
     }
 }

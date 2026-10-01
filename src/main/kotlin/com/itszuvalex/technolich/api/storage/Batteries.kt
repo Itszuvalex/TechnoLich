@@ -14,7 +14,8 @@ private const val POWER_MAX_KEY = "M"
  * In-memory battery with a fixed capacity. Persists only the current charge (key `P`). The charge is kept within
  * `[0, maxPower]`, as in 1.12.2, so a save from a larger battery loads clamped.
  *
- * @param onChanged Run after every [setStorage] and [setChanged], e.g. the owning block entity's setChanged.
+ * @param onChanged Run after every write to [storage] and every [setChanged], e.g. the owning block entity's
+ * setChanged.
  */
 open class PowerBattery @JvmOverloads constructor(
     private val maxPower: Double,
@@ -22,12 +23,12 @@ open class PowerBattery @JvmOverloads constructor(
 ) : IBattery {
     private var curPower = 0.0
 
-    override fun storage(): Double = curPower
-
-    override fun setStorage(storage: Double) {
-        curPower = storage.coerceIn(0.0, maxPower)
-        onChanged.run()
-    }
+    override var storage: Double
+        get() = curPower
+        set(value) {
+            curPower = value.coerceIn(0.0, maxPower)
+            onChanged.run()
+        }
 
     override fun setStorageQuietly(storage: Double) {
         curPower = storage.coerceIn(0.0, maxPower)
@@ -35,11 +36,13 @@ open class PowerBattery @JvmOverloads constructor(
 
     override fun setChanged() = onChanged.run()
 
-    override fun maxStorage(): Double = maxPower
+    override val maxStorage: Double get() = maxPower
 
-    override fun serialize(output: ValueOutput) = output.putDouble(POWER_KEY, storage())
+    override fun serialize(output: ValueOutput) = output.putDouble(POWER_KEY, storage)
 
-    override fun deserialize(input: ValueInput) = setStorage(input.getDoubleOr(POWER_KEY, 0.0))
+    override fun deserialize(input: ValueInput) {
+        storage = input.getDoubleOr(POWER_KEY, 0.0)
+    }
 }
 
 /**
@@ -47,25 +50,25 @@ open class PowerBattery @JvmOverloads constructor(
  */
 open class PowerBatteryNBT(private val nbt: CompoundTag) : IBattery {
     constructor(nbt: CompoundTag, max: Double) : this(nbt) {
-        setMaxStorage(max)
+        maxStorage = max
     }
 
-    override fun storage(): Double = nbt.getDoubleOr(POWER_KEY, 0.0)
+    override var storage: Double
+        get() = nbt.getDoubleOr(POWER_KEY, 0.0)
+        set(value) = nbt.putDouble(POWER_KEY, value)
 
-    override fun setStorage(storage: Double) = nbt.putDouble(POWER_KEY, storage)
-
-    override fun maxStorage(): Double = nbt.getDoubleOr(POWER_MAX_KEY, 0.0)
-
-    fun setMaxStorage(max: Double) = nbt.putDouble(POWER_MAX_KEY, max)
+    override var maxStorage: Double
+        get() = nbt.getDoubleOr(POWER_MAX_KEY, 0.0)
+        set(value) = nbt.putDouble(POWER_MAX_KEY, value)
 
     override fun serialize(output: ValueOutput) {
-        output.putDouble(POWER_KEY, storage())
-        output.putDouble(POWER_MAX_KEY, maxStorage())
+        output.putDouble(POWER_KEY, storage)
+        output.putDouble(POWER_MAX_KEY, maxStorage)
     }
 
     override fun deserialize(input: ValueInput) {
-        setStorage(input.getDoubleOr(POWER_KEY, 0.0))
-        setMaxStorage(input.getDoubleOr(POWER_MAX_KEY, 0.0))
+        storage = input.getDoubleOr(POWER_KEY, 0.0)
+        maxStorage = input.getDoubleOr(POWER_MAX_KEY, 0.0)
     }
 }
 
@@ -73,14 +76,17 @@ open class PowerBatteryNBT(private val nbt: CompoundTag) : IBattery {
  * Forwards everything to whatever battery [batterySupplier] returns at call time.
  */
 open class DynamicIBattery(private val batterySupplier: () -> IBattery) : IBattery {
-    override fun room(): Double = batterySupplier().room()
+    override val room: Double get() = batterySupplier().room
     override fun fill(amt: Double): Double = batterySupplier().fill(amt)
     override fun drain(amt: Double): Double = batterySupplier().drain(amt)
-    override fun storage(): Double = batterySupplier().storage()
-    override fun setStorage(storage: Double) = batterySupplier().setStorage(storage)
+    override var storage: Double
+        get() = batterySupplier().storage
+        set(value) {
+            batterySupplier().storage = value
+        }
     override fun setStorageQuietly(storage: Double) = batterySupplier().setStorageQuietly(storage)
     override fun setChanged() = batterySupplier().setChanged()
-    override fun maxStorage(): Double = batterySupplier().maxStorage()
+    override val maxStorage: Double get() = batterySupplier().maxStorage
     override fun serialize(output: ValueOutput) = batterySupplier().serialize(output)
     override fun deserialize(input: ValueInput) = batterySupplier().deserialize(input)
 }
@@ -91,14 +97,14 @@ open class DynamicIBattery(private val batterySupplier: () -> IBattery) : IBatte
  * Mutations open root transactions, so they must not be called while a transaction is open.
  */
 open class BatteryEnergyHandler(private val handler: EnergyHandler) : IBattery {
-    override fun storage(): Double = handler.amountAsLong.toDouble()
+    override var storage: Double
+        get() = handler.amountAsLong.toDouble()
+        set(value) {
+            val diff = value - storage
+            if (diff > 0) fill(diff) else if (diff < 0) drain(-diff)
+        }
 
-    override fun setStorage(storage: Double) {
-        val diff = storage - storage()
-        if (diff > 0) fill(diff) else if (diff < 0) drain(-diff)
-    }
-
-    override fun maxStorage(): Double = handler.capacityAsLong.toDouble()
+    override val maxStorage: Double get() = handler.capacityAsLong.toDouble()
 
     override fun fill(amt: Double): Double = Transaction.openRoot().use { tx ->
         val filled = handler.insert(toInt(amt), tx)

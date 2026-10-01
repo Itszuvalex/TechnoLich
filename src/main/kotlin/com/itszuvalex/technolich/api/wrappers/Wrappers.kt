@@ -84,20 +84,22 @@ class WrapperBlockEntity(private val entity: BlockEntity) : IBlockEntity {
 }
 
 class WrapperVanillaItemStack(private val stack: ItemStack) : IItemStack {
-    override fun item(): Identifier = BuiltInRegistries.ITEM.getKey(stack.item)
-    override fun stackSize(): Int = stack.count
-    override fun setStackSize(size: Int) {
-        stack.count = size
-    }
-    override fun stackSizeMax(): Int = stack.maxStackSize
-    override fun damage(): Int = stack.damageValue
-    override fun setDamage(damage: Int) {
-        stack.damageValue = damage
-    }
-    override fun damageMax(): Int = stack.maxDamage
-    override fun components(): DataComponentPatch = stack.componentsPatch
+    override val item: Identifier get() = BuiltInRegistries.ITEM.getKey(stack.item)
+    override var stackSize: Int
+        get() = stack.count
+        set(value) {
+            stack.count = value
+        }
+    override val stackSizeMax: Int get() = stack.maxStackSize
+    override var damage: Int
+        get() = stack.damageValue
+        set(value) {
+            stack.damageValue = value
+        }
+    override val damageMax: Int get() = stack.maxDamage
+    override val components: DataComponentPatch get() = stack.componentsPatch
     override fun toMinecraft(): ItemStack = stack
-    override fun isEmpty(): Boolean = stack.isEmpty
+    override val isEmpty: Boolean get() = stack.isEmpty
     override fun copy(): IItemStack = WrapperVanillaItemStack(stack.copy())
     override fun isItemEqual(other: IItemStack): Boolean = ItemStack.isSameItemSameComponents(stack, other.toMinecraft())
     override fun <T : Any> getModule(module: IModule<T>, side: Direction?): T? =
@@ -114,8 +116,8 @@ class WrapperVanillaItemStack(private val stack: ItemStack) : IItemStack {
  * slots.
  */
 class WrapperContainerIItemStorage(private val storage: IItemStorage) : Container {
-    override fun getContainerSize(): Int = storage.size()
-    override fun isEmpty(): Boolean = storage.isEmpty()
+    override fun getContainerSize(): Int = storage.size
+    override fun isEmpty(): Boolean = storage.isEmpty
     override fun getItem(slot: Int): ItemStack = storage.get(slot).toMinecraft()
     override fun removeItem(slot: Int, count: Int): ItemStack = storage.split(slot, count).toMinecraft()
     override fun removeItemNoUpdate(slot: Int): ItemStack {
@@ -139,7 +141,7 @@ class WrapperContainerIItemStorage(private val storage: IItemStorage) : Containe
      */
     override fun stillValid(player: Player): Boolean = true
     override fun clearContent() {
-        for (i in 0 until storage.size()) storage.setSlot(i, IItemStack.Empty)
+        for (i in 0 until storage.size) storage.setSlot(i, IItemStack.Empty)
     }
 }
 
@@ -160,7 +162,7 @@ class WrapperResourceHandlerIItemStorage private constructor(private val storage
         return slots[index]
     }
 
-    override fun size(): Int = storage.size()
+    override fun size(): Int = storage.size
 
     override fun insert(index: Int, resource: ItemResource, amount: Int, transaction: TransactionContext): Int =
         slot(index).insert(0, resource, amount, transaction)
@@ -205,30 +207,30 @@ class WrapperResourceHandlerIItemStorage private constructor(private val storage
  * Energy is converted 1:1 and truncated to whole units.
  */
 class WrapperEnergyHandlerIBattery(private val battery: IBattery) : SnapshotJournal<Double>(), EnergyHandler {
-    override fun getAmountAsLong(): Long = floor(battery.storage()).toLong()
+    override fun getAmountAsLong(): Long = floor(battery.storage).toLong()
 
-    override fun getCapacityAsLong(): Long = floor(battery.maxStorage()).toLong()
+    override fun getCapacityAsLong(): Long = floor(battery.maxStorage).toLong()
 
     override fun insert(amount: Int, transaction: TransactionContext): Int {
         TransferPreconditions.checkNonNegative(amount)
-        val toFill = min(amount.toDouble(), floor(battery.room())).toInt()
+        val toFill = min(amount.toDouble(), floor(battery.room)).toInt()
         if (toFill <= 0) return 0
         updateSnapshots(transaction)
         // Quiet while the transaction is open; the battery is notified once, on root commit.
-        battery.setStorageQuietly(battery.storage() + toFill)
+        battery.setStorageQuietly(battery.storage + toFill)
         return toFill
     }
 
     override fun extract(amount: Int, transaction: TransactionContext): Int {
         TransferPreconditions.checkNonNegative(amount)
-        val toDrain = min(amount.toDouble(), floor(battery.storage())).toInt()
+        val toDrain = min(amount.toDouble(), floor(battery.storage)).toInt()
         if (toDrain <= 0) return 0
         updateSnapshots(transaction)
-        battery.setStorageQuietly(battery.storage() - toDrain)
+        battery.setStorageQuietly(battery.storage - toDrain)
         return toDrain
     }
 
-    override fun createSnapshot(): Double = battery.storage()
+    override fun createSnapshot(): Double = battery.storage
 
     override fun revertToSnapshot(snapshot: Double) = battery.setStorageQuietly(snapshot)
 
