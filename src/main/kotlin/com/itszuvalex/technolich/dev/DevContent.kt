@@ -9,6 +9,7 @@ import com.itszuvalex.technolich.api.wrappers.WrapperResourceHandlerIItemStorage
 import com.itszuvalex.technolich.core.BlockEntityCore
 import com.itszuvalex.technolich.core.EntityBlockCore
 import com.itszuvalex.technolich.core.FragMultiblockPart
+import com.itszuvalex.technolich.core.MultiblockBreakPolicy
 import com.itszuvalex.technolich.core.MultiblockRoleRef
 import com.itszuvalex.technolich.core.MultiblockShape
 import com.itszuvalex.technolich.core.frag.FragColorable
@@ -31,13 +32,27 @@ import net.neoforged.neoforge.registries.DeferredHolder
 import net.neoforged.neoforge.registries.DeferredRegister
 
 /**
- * Dev-only multiblock shapes. A `core` at the shape's origin plus a `wing` one block east.
+ * Dev-only multiblock shapes, both a `core` at the origin plus one `wing`. The dev core and wing blocks can fill
+ * either, so where the wing goes picks the shape.
  */
 object DevShapes {
+    /**
+     * Wing one block east; breaking a member dissolves the structure.
+     */
     @JvmField
     val PAIR: MultiblockShape = MultiblockShape.register(
         Identifier.fromNamespaceAndPath(TechnoLich.ID, "dev_pair"),
         mapOf(BlockPos.ZERO to "core", BlockPos(1, 0, 0) to "wing"),
+    )
+
+    /**
+     * Wing one block up; breaking a member destroys the other.
+     */
+    @JvmField
+    val LINKED_PAIR: MultiblockShape = MultiblockShape.register(
+        Identifier.fromNamespaceAndPath(TechnoLich.ID, "dev_linked_pair"),
+        mapOf(BlockPos.ZERO to "core", BlockPos(0, 1, 0) to "wing"),
+        MultiblockBreakPolicy.DESTROY_ALL,
     )
 }
 
@@ -73,7 +88,7 @@ object DevContent {
         BLOCK_ENTITY_TYPES.register("dev_multiblock_wing") { -> BlockEntityType(::DevMultiblockWingBlockEntity, DEV_MULTIBLOCK_WING_BLOCK.get()) }
 
     fun register(modBus: IEventBus) {
-        DevShapes.PAIR // force shape registration before anything can try to form it
+        DevShapes.PAIR // force shape registration (both shapes) before anything can try to form it
         BLOCKS.register(modBus)
         BLOCK_ENTITY_TYPES.register(modBus)
         DevGameTests.register(modBus)
@@ -122,12 +137,12 @@ class DevMultiblockCoreBlock(properties: BlockBehaviour.Properties) :
 }
 
 /**
- * Fills the `core` slot of [DevShapes.PAIR].
+ * Fills the `core` slot of [DevShapes.PAIR] or [DevShapes.LINKED_PAIR].
  */
 class DevMultiblockCoreBlockEntity(pos: BlockPos, state: BlockState) :
     BlockEntityCore(DevContent.DEV_MULTIBLOCK_CORE_BLOCK_ENTITY.get(), pos, state) {
     @JvmField
-    val multiblock = FragMultiblockPart(listOf(MultiblockRoleRef(DevShapes.PAIR, "core")))
+    val multiblock = FragMultiblockPart(listOf(MultiblockRoleRef(DevShapes.PAIR, "core"), MultiblockRoleRef(DevShapes.LINKED_PAIR, "core")))
 
     init {
         fragList.addFragment(multiblock)
@@ -140,12 +155,12 @@ class DevMultiblockWingBlock(properties: BlockBehaviour.Properties) :
 }
 
 /**
- * Fills the `wing` slot of [DevShapes.PAIR].
+ * Fills the `wing` slot of [DevShapes.PAIR] or [DevShapes.LINKED_PAIR].
  */
 class DevMultiblockWingBlockEntity(pos: BlockPos, state: BlockState) :
     BlockEntityCore(DevContent.DEV_MULTIBLOCK_WING_BLOCK_ENTITY.get(), pos, state) {
     @JvmField
-    val multiblock = FragMultiblockPart(listOf(MultiblockRoleRef(DevShapes.PAIR, "wing")))
+    val multiblock = FragMultiblockPart(listOf(MultiblockRoleRef(DevShapes.PAIR, "wing"), MultiblockRoleRef(DevShapes.LINKED_PAIR, "wing")))
 
     init {
         fragList.addFragment(multiblock)

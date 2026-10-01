@@ -66,6 +66,7 @@ object DevGameTests {
         test("resource_handler_per_slot_limit", ::resourceHandlerPerSlotLimit)
         test("multiblock_forms_and_breaks", ::multiblockFormsAndBreaks)
         test("multiblock_incomplete_does_not_form", ::multiblockIncompleteDoesNotForm)
+        test("multiblock_destroy_all_breaks_every_member", ::multiblockDestroyAllBreaksEveryMember)
     }
 
     fun register(modBus: IEventBus) {
@@ -293,6 +294,27 @@ object DevGameTests {
         helper.startSequence()
             .thenIdle(2)
             .thenExecute { helper.assertTrue(core.multiblock.membership == null, "core formed a structure with no wing present") }
+            .thenSucceed()
+    }
+
+    /**
+     * [DevShapes.LINKED_PAIR] is [com.itszuvalex.technolich.core.MultiblockBreakPolicy.DESTROY_ALL]: breaking the core
+     * removes the wing too, instead of leaving it standing.
+     */
+    private fun multiblockDestroyAllBreaksEveryMember(helper: GameTestHelper) {
+        val wingPos = BlockPos(0, 1, 0)
+        helper.setBlock(POS, DevContent.DEV_MULTIBLOCK_CORE_BLOCK.get())
+        helper.setBlock(wingPos, DevContent.DEV_MULTIBLOCK_WING_BLOCK.get())
+        val core = helper.getBlockEntity(POS, DevMultiblockCoreBlockEntity::class.java)
+
+        helper.startSequence()
+            .thenWaitUntil {
+                val membership = core.multiblock.membership
+                helper.assertTrue(membership != null, "core did not join a structure")
+                helper.assertValueEqual(DevShapes.LINKED_PAIR, membership!!.shape, "shape")
+            }
+            .thenExecute { helper.destroyBlock(POS) }
+            .thenWaitUntil { helper.assertBlockNotPresent(DevContent.DEV_MULTIBLOCK_WING_BLOCK.get(), wingPos) }
             .thenSucceed()
     }
 }

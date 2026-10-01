@@ -26,8 +26,14 @@ import java.util.concurrent.ConcurrentHashMap
  * A role may occupy more than one slot (e.g. four `wall` slots); any part that can fill that role may occupy any of
  * them. Matching is axis-aligned and fixed-orientation only; a rotated/mirrored variant needs its own registered
  * shape (or its own offsets added to this one) — there is no automatic rotation search.
+ *
+ * [breakPolicy] decides what breaking one member does to the others.
  */
-class MultiblockShape private constructor(val id: Identifier, slots: Map<BlockPos, String>) {
+class MultiblockShape private constructor(
+    val id: Identifier,
+    slots: Map<BlockPos, String>,
+    val breakPolicy: MultiblockBreakPolicy,
+) {
     val slots: Map<BlockPos, String> = slots.toMap()
 
     /**
@@ -44,9 +50,14 @@ class MultiblockShape private constructor(val id: Identifier, slots: Map<BlockPo
          * @throws IllegalArgumentException if [slots] is empty, or a shape with this id is already registered.
          */
         @JvmStatic
-        fun register(id: Identifier, slots: Map<BlockPos, String>): MultiblockShape {
+        @JvmOverloads
+        fun register(
+            id: Identifier,
+            slots: Map<BlockPos, String>,
+            breakPolicy: MultiblockBreakPolicy = MultiblockBreakPolicy.DISSOLVE,
+        ): MultiblockShape {
             require(slots.isNotEmpty()) { "Shape $id has no slots" }
-            val shape = MultiblockShape(id, slots)
+            val shape = MultiblockShape(id, slots, breakPolicy)
             require(SHAPES.putIfAbsent(id, shape) == null) { "Shape with id: $id already registered." }
             return shape
         }
@@ -58,6 +69,23 @@ class MultiblockShape private constructor(val id: Identifier, slots: Map<BlockPo
         @JvmStatic
         fun clear() = SHAPES.clear()
     }
+}
+
+/**
+ * What breaking one member of a formed structure does to the rest.
+ */
+enum class MultiblockBreakPolicy {
+    /**
+     * The structure dissolves: every other member stays in the world and leaves the structure, free to form again.
+     * Members in unloaded chunks are not told (see [MultiblockManager]).
+     */
+    DISSOLVE,
+
+    /**
+     * Every other member is destroyed too. Siblings are looked up through the level, which loads their chunks, so
+     * members in unloaded chunks are removed rather than left as orphaned pieces.
+     */
+    DESTROY_ALL,
 }
 
 /**
@@ -141,14 +169,25 @@ class MultiblockInstance(val id: UUID, val shape: MultiblockShape, val anchor: L
  * one-time cost any multiblock design pays to validate a shape), but costs nothing afterward: a loaded member never
  * needs its siblings loaded to answer for itself.
  *
- * Known limitation: if a member is destroyed while a sibling is unloaded, that sibling is not told — it keeps
- * believing it belongs to a dead [MultiblockMembership] until it is itself broken or re-notified some other way.
- * Fixing this needs a small, level-scoped record of retired structure ids (cheap: just ids, no payload) that a
- * reloading member can check itself against. Deliberately not built yet; add it if break-while-sibling-unloaded
- * turns out to matter in practice.
+ * Known limitation ([MultiblockBreakPolicy.DISSOLVE] only): if a member is destroyed while a sibling is unloaded,
+ * that sibling is not told — it keeps believing it belongs to a dead [MultiblockMembership] until it is itself
+ * broken or re-notified some other way. Fixing this needs a small, level-scoped record of retired structure ids
+ * (cheap: just ids, no payload) that a reloading member can check itself against. Deliberately not built yet; add it
+ * if break-while-sibling-unloaded turns out to matter in practice. [MultiblockBreakPolicy.DESTROY_ALL] has no such
+ * gap: it loads the siblings' chunks to remove them.
+ *
+ * @param destroyBlock Removes a sibling's block for [MultiblockBreakPolicy.DESTROY_ALL] (as if broken, with drops).
+ * Replaceable for tests.
  */
-class MultiblockManager {
+class MultiblockManager(
+    private val destroyBlock: (ILevel, BlockPos) -> Unit = { level, pos -> level.toMinecraft().destroyBlock(pos, true) },
+) {
     private val instances = HashMap<UUID, MultiblockInstance>()
+
+    /**
+     * Structures being torn down by [onPartRemoved], so the removals it causes don't recurse.
+     */
+    private val breaking = HashSet<UUID>()
 
     fun get(id: UUID): MultiblockInstance? = instances[id]
 
@@ -189,13 +228,40 @@ class MultiblockManager {
     }
 
     /**
-     * The member was broken. Its structure no longer exists: every other currently-loaded member is told to
-     * [IMultiblockMember.leave].
+     * The member at [pos] was broken. Its structure no longer exists. What happens to the other members depends on
+     * the shape's [MultiblockShape.breakPolicy]:
+     * - [MultiblockBreakPolicy.DISSOLVE]: every other currently-loaded member is told to [IMultiblockMember.leave].
+     * - [MultiblockBreakPolicy.DESTROY_ALL]: every other slot of the structure is looked up through [level] (loading
+     *   its chunk if needed); each block there that still belongs to this structure leaves and is destroyed.
      */
-    fun onPartRemoved(member: IMultiblockMember) {
+    fun onPartRemoved(level: ILevel, pos: BlockPos, member: IMultiblockMember) {
         val membership = member.membership ?: return
-        val instance = instances.remove(membership.structureId) ?: return
-        instance.membersExcept(membership.offset).forEach { it.leave() }
+        val id = membership.structureId
+        // A sibling being destroyed below reports its own removal; the structure is already being torn down.
+        if (!breaking.add(id)) return
+        try {
+            val instance = instances.remove(id)
+            when (membership.shape.breakPolicy) {
+                MultiblockBreakPolicy.DISSOLVE -> instance?.membersExcept(membership.offset)?.forEach { it.leave() }
+                MultiblockBreakPolicy.DESTROY_ALL -> destroySiblings(level, pos, membership)
+            }
+        } finally {
+            breaking.remove(id)
+        }
+    }
+
+    private fun destroySiblings(level: ILevel, pos: BlockPos, membership: MultiblockMembership) {
+        val anchor = pos.subtract(membership.offset)
+        for (offset in membership.shape.slots.keys) {
+            if (offset == membership.offset) continue
+            val siblingPos = anchor.offset(offset)
+            // Not Loc4.getIBlockEntity(false): the lookup must load the chunk, or an unloaded sibling is orphaned.
+            val sibling = level.getIBlockEntity(siblingPos)?.getModule(Modules.MULTIBLOCK_MEMBER, null) ?: continue
+            // Another structure (or a lone part) may have taken the slot since; leave it alone.
+            if (sibling.membership?.structureId != membership.structureId) continue
+            sibling.leave()
+            destroyBlock(level, siblingPos)
+        }
     }
 
     private fun anchorFor(memberLoc: Loc4, offset: BlockPos): Loc4 = memberLoc.getOffset(-offset.x, -offset.y, -offset.z)
@@ -287,7 +353,7 @@ class FragMultiblockPart(override val candidateRoles: List<MultiblockRoleRef>) :
 
     override fun onRemove(level: ILevel, pos: BlockPos, blockStatePrev: BlockState) {
         if (level.isClientSide()) return
-        manager()?.onPartRemoved(this)
+        manager()?.onPartRemoved(level, pos, this)
     }
 
     private fun manager() = TechnoLich.MULTIBLOCK_MANAGER.get(LogicalSide.SERVER)

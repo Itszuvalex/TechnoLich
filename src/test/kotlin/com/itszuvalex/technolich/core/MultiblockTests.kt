@@ -38,7 +38,8 @@ class TestableMultiblockBlockEntity(private val pos: BlockPos, roles: List<Multi
 
 class MultiblockManagerTest {
     private val level = TestableLevel(TestableLoc4.DEFAULT_DIM)
-    private val manager = MultiblockManager()
+    private val destroyed = ArrayList<BlockPos>()
+    private val manager = MultiblockManager { _, pos -> destroyed.add(pos) }
 
     private fun place(shape: MultiblockShape, pos: BlockPos, vararg roles: String): TestableMultiblockBlockEntity {
         val entity = TestableMultiblockBlockEntity(pos, roles.map { MultiblockRoleRef(shape, it) })
@@ -113,10 +114,87 @@ class MultiblockManagerTest {
         load(wing)
         val id = core.part.membership!!.structureId
 
-        manager.onPartRemoved(wing.part)
+        manager.onPartRemoved(level, wing.getBlockPos(), wing.part)
+        Assertions.assertTrue(destroyed.isEmpty(), "DISSOLVE must not destroy any block")
 
         Assertions.assertNull(core.part.membership, "the other member must leave when a sibling is removed")
         Assertions.assertNull(manager.get(id), "the destroyed structure's instance must be forgotten")
+    }
+
+    @Test
+    fun OnPartRemoved_DestroyAll_DestroysEveryOtherMember() {
+        val core = place(LINKED_TRIPLE, BlockPos.ZERO, "core")
+        val east = place(LINKED_TRIPLE, BlockPos(1, 0, 0), "wing")
+        val west = place(LINKED_TRIPLE, BlockPos(-1, 0, 0), "wing")
+        load(core)
+        val id = core.part.membership!!.structureId
+
+        manager.onPartRemoved(level, east.getBlockPos(), east.part)
+
+        Assertions.assertEquals(setOf(BlockPos.ZERO, BlockPos(-1, 0, 0)), destroyed.toSet())
+        Assertions.assertNull(core.part.membership)
+        Assertions.assertNull(west.part.membership)
+        Assertions.assertNull(manager.get(id))
+    }
+
+    /**
+     * The sibling's chunk unloaded, so the manager no longer holds it; it must still be found (through the level,
+     * which loads chunks) and destroyed rather than left as an orphaned piece.
+     */
+    @Test
+    fun OnPartRemoved_DestroyAll_SiblingUnloaded_StillDestroyed() {
+        val core = place(LINKED_TRIPLE, BlockPos.ZERO, "core")
+        val east = place(LINKED_TRIPLE, BlockPos(1, 0, 0), "wing")
+        val west = place(LINKED_TRIPLE, BlockPos(-1, 0, 0), "wing")
+        load(core)
+        manager.onPartUnloaded(west.part)
+
+        manager.onPartRemoved(level, east.getBlockPos(), east.part)
+
+        Assertions.assertTrue(BlockPos(-1, 0, 0) in destroyed, "unloaded sibling must be destroyed")
+        Assertions.assertNull(west.part.membership)
+    }
+
+    @Test
+    fun OnPartRemoved_DestroyAll_LeavesBlocksOfOtherStructures() {
+        val core = place(LINKED_TRIPLE, BlockPos.ZERO, "core")
+        val east = place(LINKED_TRIPLE, BlockPos(1, 0, 0), "wing")
+        place(LINKED_TRIPLE, BlockPos(-1, 0, 0), "wing")
+        load(core)
+        // The west slot now holds a part of some other structure.
+        val stranger = place(LINKED_TRIPLE, BlockPos(-1, 0, 0), "wing")
+        stranger.part.join(MultiblockMembership(UUID.randomUUID(), LINKED_TRIPLE, BlockPos(-1, 0, 0)))
+
+        manager.onPartRemoved(level, east.getBlockPos(), east.part)
+
+        Assertions.assertEquals(listOf(BlockPos.ZERO), destroyed)
+        Assertions.assertNotNull(stranger.part.membership)
+    }
+
+    /**
+     * Destroying a sibling reports that sibling's own removal back to the manager; that must not tear anything down
+     * twice.
+     */
+    @Test
+    fun OnPartRemoved_DestroyAll_ReentrantRemovalIsIgnored() {
+        val core = place(LINKED_TRIPLE, BlockPos.ZERO, "core")
+        val east = place(LINKED_TRIPLE, BlockPos(1, 0, 0), "wing")
+        val west = place(LINKED_TRIPLE, BlockPos(-1, 0, 0), "wing")
+        val calls = ArrayList<BlockPos>()
+        lateinit var mgr: MultiblockManager
+        mgr = MultiblockManager { lvl, pos ->
+            calls.add(pos)
+            // Vanilla runs the destroyed block's removal hook, which reports back to the manager.
+            val part = (lvl.getIBlockEntity(pos) as TestableMultiblockBlockEntity).part
+            mgr.onPartRemoved(lvl, pos, part)
+        }
+        mgr.onPartLoaded(Loc4.of(level, BlockPos.ZERO), core.part)
+
+        mgr.onPartRemoved(level, east.getBlockPos(), east.part)
+
+        Assertions.assertEquals(listOf(BlockPos.ZERO, BlockPos(-1, 0, 0)).toSet(), calls.toSet())
+        Assertions.assertEquals(2, calls.size)
+        Assertions.assertNull(west.part.membership)
     }
 
     @Test
@@ -169,6 +247,7 @@ class MultiblockManagerTest {
     companion object {
         private lateinit var PAIR: MultiblockShape
         private lateinit var TRIPLE: MultiblockShape
+        private lateinit var LINKED_TRIPLE: MultiblockShape
 
         @BeforeAll
         @JvmStatic
@@ -180,6 +259,11 @@ class MultiblockManagerTest {
             TRIPLE = MultiblockShape.register(
                 Identifier.fromNamespaceAndPath("technolich_test", "triple"),
                 mapOf(BlockPos.ZERO to "core", BlockPos(1, 0, 0) to "wing", BlockPos(-1, 0, 0) to "wing"),
+            )
+            LINKED_TRIPLE = MultiblockShape.register(
+                Identifier.fromNamespaceAndPath("technolich_test", "linked_triple"),
+                mapOf(BlockPos.ZERO to "core", BlockPos(1, 0, 0) to "wing", BlockPos(-1, 0, 0) to "wing"),
+                MultiblockBreakPolicy.DESTROY_ALL,
             )
         }
 
