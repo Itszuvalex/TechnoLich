@@ -78,6 +78,12 @@ interface IInternalBlockEntityFragment : IBlockEntityEventHandler, IBlockEntityB
      * (compare [IBlockEntityBlockEventHandler.onRemove], a real break/replace). See [BlockEntity.onChunkUnloaded].
      */
     fun onChunkUnloaded(level: ILevel, pos: BlockPos) {}
+
+    /**
+     * Called when a neighbouring block changed (`Block#neighborChanged`; 26.1 no longer says which neighbour). Only
+     * blocks extending [EntityBlockCore] forward this.
+     */
+    fun onNeighborChanged(level: ILevel, pos: BlockPos) {}
 }
 
 /**
@@ -137,6 +143,8 @@ class BlockEntityFragmentCollection(private val host: IFragmentHost) :
     fun onLoad(level: ILevel, pos: BlockPos) = modList.forEach { it.onLoad(level, pos) }
 
     fun onChunkUnloaded(level: ILevel, pos: BlockPos) = modList.forEach { it.onChunkUnloaded(level, pos) }
+
+    fun onNeighborChanged(level: ILevel, pos: BlockPos) = modList.forEach { it.onNeighborChanged(level, pos) }
 
     override fun tick(level: ILevel, blockPos: BlockPos, blockState: BlockState) =
         tickList.forEach { it.tick(level, blockPos, blockState) }

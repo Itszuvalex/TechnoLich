@@ -29,6 +29,7 @@ import net.minecraft.world.level.block.entity.BlockEntityTicker
 import net.minecraft.world.level.block.entity.BlockEntityType
 import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.redstone.Orientation
 import net.minecraft.world.level.storage.TagValueInput
 import net.minecraft.world.level.storage.TagValueOutput
 import net.minecraft.world.level.storage.ValueInput
@@ -156,6 +157,11 @@ open class BlockEntityCore(type: BlockEntityType<*>, pos: BlockPos, state: Block
         level?.let { fragList.onChunkUnloaded(ILevel.of(it), worldPosition) }
     }
 
+    /**
+     * Called by [EntityBlockCore.neighborChanged].
+     */
+    fun onNeighborChanged(level: ILevel, pos: BlockPos) = fragList.onNeighborChanged(level, pos)
+
     override fun preRemoveSideEffects(pos: BlockPos, state: BlockState) {
         super.preRemoveSideEffects(pos, state)
         level?.let { onRemove(ILevel.of(it), pos, state) }
@@ -178,7 +184,15 @@ abstract class TickableBlockEntityCore(type: BlockEntityType<*>, pos: BlockPos, 
 abstract class EntityBlockCore<T : BlockEntity>(
     properties: BlockBehaviour.Properties,
     protected val typeSupplier: () -> BlockEntityType<T>,
-) : Block(properties), EntityBlock
+) : Block(properties), EntityBlock {
+    /**
+     * Forwards to the block entity's [BlockEntityCore.onNeighborChanged].
+     */
+    override fun neighborChanged(state: BlockState, level: Level, pos: BlockPos, block: Block, orientation: Orientation?, movedByPiston: Boolean) {
+        super.neighborChanged(state, level, pos, block, orientation, movedByPiston)
+        (level.getBlockEntity(pos) as? BlockEntityCore)?.onNeighborChanged(ILevel.of(level), pos)
+    }
+}
 
 abstract class TickableEntityBlockCore<T : TickableBlockEntityCore>(
     properties: BlockBehaviour.Properties,
