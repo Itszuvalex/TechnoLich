@@ -119,7 +119,12 @@ object TeamEvents {
         }
     }
 
+    /**
+     * Only to connections that negotiated the payload: a client without the mod, or a game test's mock player, cannot
+     * receive it, and sending would throw.
+     */
     private fun send(player: ServerPlayer) {
+        if (!player.connection.hasChannel(TeamSyncPayload.TYPE)) return
         val team = TechnoLich.TEAMS.state.teamOf(player.uuid) ?: return
         val ops = player.registryAccess().createSerializationContext(NbtOps.INSTANCE)
         PacketDistributor.sendToPlayer(player, TeamSyncPayload(TeamCodec.encodeTeam(team, ops)))
