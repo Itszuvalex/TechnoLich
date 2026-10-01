@@ -10,6 +10,7 @@ import com.itszuvalex.technolich.api.utility.ModuleCapabilityArrayListMap
 import com.itszuvalex.technolich.api.utility.NBTSerializationScope
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.world.level.block.entity.BlockEntity
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.storage.ValueInput
 import net.minecraft.world.level.storage.ValueOutput
@@ -65,6 +66,18 @@ interface IInternalBlockEntityFragment : IBlockEntityEventHandler, IBlockEntityB
      * Called once when the fragment is added to its block entity's fragment collection.
      */
     fun onAttach(host: IFragmentHost) {}
+
+    /**
+     * Called once the owning block entity is fully attached to a loaded level — both for one freshly placed into an
+     * already-loaded chunk, and for one loaded in along with its chunk. See [BlockEntity.onLoad].
+     */
+    fun onLoad(level: ILevel, pos: BlockPos) {}
+
+    /**
+     * Called when the owning block entity's chunk unloads while the block entity itself is not being removed
+     * (compare [IBlockEntityBlockEventHandler.onRemove], a real break/replace). See [BlockEntity.onChunkUnloaded].
+     */
+    fun onChunkUnloaded(level: ILevel, pos: BlockPos) {}
 }
 
 /**
@@ -120,6 +133,10 @@ class BlockEntityFragmentCollection(private val host: IFragmentHost) :
     fun addTickable(tickable: IBlockEntityTickable) {
         tickList.add(tickable)
     }
+
+    fun onLoad(level: ILevel, pos: BlockPos) = modList.forEach { it.onLoad(level, pos) }
+
+    fun onChunkUnloaded(level: ILevel, pos: BlockPos) = modList.forEach { it.onChunkUnloaded(level, pos) }
 
     override fun tick(level: ILevel, blockPos: BlockPos, blockState: BlockState) =
         tickList.forEach { it.tick(level, blockPos, blockState) }

@@ -146,6 +146,16 @@ open class BlockEntityCore(type: BlockEntityType<*>, pos: BlockPos, state: Block
 
     private fun registries(): HolderLookup.Provider = level?.registryAccess() ?: RegistryAccess.EMPTY
 
+    override fun onLoad() {
+        super.onLoad()
+        level?.let { fragList.onLoad(ILevel.of(it), worldPosition) }
+    }
+
+    override fun onChunkUnloaded() {
+        super.onChunkUnloaded()
+        level?.let { fragList.onChunkUnloaded(ILevel.of(it), worldPosition) }
+    }
+
     override fun preRemoveSideEffects(pos: BlockPos, state: BlockState) {
         super.preRemoveSideEffects(pos, state)
         level?.let { onRemove(ILevel.of(it), pos, state) }

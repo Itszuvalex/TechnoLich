@@ -76,15 +76,18 @@ src/main/kotlin/com/itszuvalex/technolich/
 ├── core/                  BlockEntityCore.kt (BlockEntityCore, TickableBlockEntityCore, EntityBlockCore,
 │   │                      TickableEntityBlockCore), Fragments.kt (fragment interfaces, IFragmentHost,
 │   │                      BlockEntityFragmentCollection), Networks.kt (INetwork, TileNetwork, NetworkManager,
-│   │                      INetworkNode, TileNetworkNode, NetworkEdge), SidedStorageConfiguration.kt
+│   │                      INetworkNode, TileNetworkNode, NetworkEdge), Multiblocks.kt (MultiblockShape,
+│   │                      IMultiblockMember, MultiblockInstance, MultiblockManager, FragMultiblockPart),
+│   │                      SidedStorageConfiguration.kt
 │   └── frag/              FragmentBases.kt (InternalBlockEntityFragment, BlockEntityFragment),
 │                          Frags.kt (FragColorable, FragDropInventory)
-├── dev/                   DevContent.kt (dev-only block + block entity), DevGameTests.kt; never registered in
-│                          production
+├── dev/                   DevContent.kt (dev-only blocks + block entities, DevShapes), DevGameTests.kt; never
+│                          registered in production
 ├── network/PacketHandler.kt Thin wrapper over NeoForge's PayloadRegistrar (no payloads yet)
 └── util/                  Color, InventoryUtils.kt (item dropping, Singleton)
 src/test/kotlin/...        JUnit tests; fakes in TestHelpers.kt (TestableLevel, TestableIItemStack, TestableLoc4,
-                           MCAssert, TestIO) and core/CoreTests.kt (TestableNetwork*, TestableFragmentHost)
+                           MCAssert, TestIO), core/CoreTests.kt (TestableNetwork*, TestableFragmentHost), and
+                           core/MultiblockTests.kt (TestableMultiblockBlockEntity)
 ```
 
 ## Core concepts
@@ -100,7 +103,7 @@ A `BlockEntityCore` owns a `BlockEntityFragmentCollection` (`fragList`). Behavio
 - `fragList.addCapability(BlockCapability<T, Direction>, side -> T)`: expose a non-module capability, typically one of `ModuleCapabilities.STANDARD` (NeoForge item/fluid/energy).
 - `fragList.addTickable(...)`: ticked by `TickableBlockEntityCore` when the block's `TickableEntityBlockCore#hasTicker(side)` returns true.
 
-`BlockEntityCore` wires fragments into the vanilla lifecycle: `saveAdditional`/`loadAdditional` (LEVEL scope), `getUpdateTag`/`handleUpdateTag`/`onDataPacket` (DESCRIPTION scope), `setRemoved`/`clearRemoved` (fragment invalidation), and `preRemoveSideEffects` → fragment `onRemove` (server only, only when the block actually changes).
+`BlockEntityCore` wires fragments into the vanilla lifecycle: `saveAdditional`/`loadAdditional` (LEVEL scope), `getUpdateTag`/`handleUpdateTag`/`onDataPacket` (DESCRIPTION scope), `setRemoved`/`clearRemoved` (fragment invalidation), `onLoad`/`onChunkUnloaded` → fragment `onLoad`/`onChunkUnloaded` (each called once, with a live `ILevel`/`BlockPos`, for the matching vanilla event — `onLoad` fires both for a fresh placement and for a chunk load; see `Multiblocks.kt` for the main user of these), and `preRemoveSideEffects` → fragment `onRemove` (server only, only when the block actually changes).
 
 ### Modules and capabilities
 An `IModule<T>` is a handle for a behaviour, identified by a namespaced `Identifier` (`id()`, e.g. `technolich:colorable`), optionally backed by a NeoForge `BlockCapability<T, Direction>` and/or `ItemCapability<T, ItemAccess>`. Register with `Module.registerModule(id, blockCap[, itemCap])`; ids must be unique (the registry is thread-safe for parallel mod construction).
@@ -133,14 +136,21 @@ NeoForge 26.1 replaced `IItemHandler`/`IEnergyStorage` with transactional `Resou
 
 Lifecycle: `TechnoLich` forwards server `ChunkEvent.Unload` to `NetworkManager#onChunkUnload`, which drops that chunk's nodes as a batch; block entities must re-add their node when they load. Removed nodes get `onRemoved`, absorbed networks get `onTakeover`, and `addNode` moves a node out of any previous network first. Connecting two nodes pulls both (and their networks) into the network doing the connecting. Splitting explores iteratively, so long cable lines are safe.
 
+### Multiblocks
+There is deliberately no single "controller" block holding a multiblock's state. A `MultiblockShape` (`MultiblockShape.register(id, slots)`) is a map of relative offset → role name; the offset (0,0,0) is just a coordinate reference, not a privileged position — it need not even be occupied. Any block entity can be a member by exposing `IMultiblockMember` (`candidateRoles`, `membership`, `join`/`leave`) through the module/capability system; `FragMultiblockPart(candidateRoles)` is the ready-made fragment for `BlockEntityCore` subclasses — add it with `fragList.addFragment(...)` like any other fragment, and it is reachable externally for free via the existing `ModuleCapabilities.registerBlockEntity` call. Members of one structure need not share a block, a block entity type, or even a mod.
+
+Formation is driven entirely by each member's own `onLoad` (see [Fragments and BlockEntityCore](#fragments-and-blockentitycore) above), not by scanning or polling: a member with no `membership` tries every shape+offset its `candidateRoles` could occupy, which needs every slot's chunk loaded at that one moment (the usual one-time cost of validating a shape) but nothing afterward — a loaded member never needs its siblings loaded to answer for itself. `MultiblockManager` (`TechnoLich.MULTIBLOCK_MANAGER`, server-only) mints a `UUID` structure id once, on formation, and it stays stable regardless of unrelated chunk load/unload churn. Breaking any member (`onRemove`) tells every other *currently loaded* member to `leave()`; a member's own chunk unloading (`onChunkUnloaded`) just deregisters it locally without telling anyone, since its own saved `membership` already remembers it for next load.
+
+**Known limitation**: if a member is destroyed while a sibling is in an unloaded chunk, that sibling is not told, and keeps believing it belongs to a dead structure until it is itself broken. See the KDoc on `MultiblockManager` for the (deliberately not yet built) fix — a small, level-scoped record of retired structure ids.
+
 ### Engine seams for testing
 `ILevel`, `IBlockEntity`, `IItemStack` and `Overideable` exist so logic can be unit tested without a running game. Tests use `TestableLevel`, `TestableIItemStack`, `TestableLoc4`, `TestableNetwork*`, `TestableFragmentHost`; `MCAssert.failVanillaClass` marks methods that must not be reached in tests, and `TestIO` round-trips Value I/O.
 
 ## Dev content and game tests
 
-`dev/` registers `technolich:dev_frag_block` (colorable, 1-slot inventory exposed via `Capabilities.Item.BLOCK`, drops on break) only when `!FMLEnvironment.isProduction()`. Place it with `/setblock ~ ~ ~ technolich:dev_frag_block` in a dev client.
+`dev/` registers `technolich:dev_frag_block` (colorable, 1-slot inventory exposed via `Capabilities.Item.BLOCK`, drops on break) and a two-block multiblock pair, `technolich:dev_multiblock_core` + `technolich:dev_multiblock_wing` (`DevShapes.PAIR`: `core` at the origin, `wing` one block east), only when `!FMLEnvironment.isProduction()`. Place with `/setblock ~ ~ ~ technolich:dev_frag_block` (etc.) in a dev client.
 
-`DevGameTests` registers test functions (`Registries.TEST_FUNCTION`) and test instances (`RegisterGameTestsEvent`) using vanilla's 1×1×1 `minecraft:empty` structure. Current tests: capability/module lookup (and setColor marking dirty), level save/load, client update tag, item capability insert with rollback, drops on break, location lookups returning the core itself, inventory changes marking dirty (commit only), ITEM-scope component round trip, and the item ResourceHandler's per-slot limit. Note `GameTestHelper#assertValueEqual(expected, actual, name)`: expected comes first.
+`DevGameTests` registers test functions (`Registries.TEST_FUNCTION`) and test instances (`RegisterGameTestsEvent`) using vanilla's 1×1×1 `minecraft:empty` structure. Current tests: capability/module lookup (and setColor marking dirty), level save/load, client update tag, item capability insert with rollback, drops on break, location lookups returning the core itself, inventory changes marking dirty (commit only), ITEM-scope component round trip, the item ResourceHandler's per-slot limit, and the multiblock pair forming/breaking. Note `GameTestHelper#assertValueEqual(expected, actual, name)`: expected comes first. The multiblock tests use `helper.startSequence()`/`thenWaitUntil`/`thenIdle` rather than asserting immediately, since `onLoad` (what drives formation) is deferred by vanilla to the tick after placement, not called synchronously from `setBlock`.
 
 ## Testing conventions
 

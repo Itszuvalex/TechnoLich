@@ -39,6 +39,7 @@ import net.neoforged.neoforge.capabilities.Capabilities as NeoCapabilities
  */
 object DevGameTests {
     private val POS: BlockPos = BlockPos.ZERO
+    private val WING_POS: BlockPos = BlockPos(1, 0, 0)
 
     private val TEST_FUNCTIONS: DeferredRegister<Consumer<GameTestHelper>> =
         DeferredRegister.create(Registries.TEST_FUNCTION, TechnoLich.ID)
@@ -63,6 +64,8 @@ object DevGameTests {
         test("inventory_change_marks_dirty", ::inventoryChangeMarksDirty)
         test("item_scope_components_round_trip", ::itemScopeComponentsRoundTrip)
         test("resource_handler_per_slot_limit", ::resourceHandlerPerSlotLimit)
+        test("multiblock_forms_and_breaks", ::multiblockFormsAndBreaks)
+        test("multiblock_incomplete_does_not_form", ::multiblockIncompleteDoesNotForm)
     }
 
     fun register(modBus: IEventBus) {
@@ -250,5 +253,46 @@ object DevGameTests {
         helper.assertValueEqual(10, storage.get(1).stackSize(), "unlimited slot count")
         helper.assertValueEqual(1, changes, "notifications on commit")
         helper.succeed()
+    }
+
+    /**
+     * Placing both slots of [DevShapes.PAIR] joins them to the same structure, at their respective offsets; breaking
+     * one tells the other to leave. Formation is driven by [BlockEntity.onLoad], which vanilla defers to the tick
+     * after placement (see `Level#tickBlockEntities`), so this must wait rather than assert immediately.
+     */
+    private fun multiblockFormsAndBreaks(helper: GameTestHelper) {
+        helper.setBlock(POS, DevContent.DEV_MULTIBLOCK_CORE_BLOCK.get())
+        helper.setBlock(WING_POS, DevContent.DEV_MULTIBLOCK_WING_BLOCK.get())
+        val core = helper.getBlockEntity(POS, DevMultiblockCoreBlockEntity::class.java)
+        val wing = helper.getBlockEntity(WING_POS, DevMultiblockWingBlockEntity::class.java)
+
+        helper.startSequence()
+            .thenWaitUntil {
+                val coreMembership = core.multiblock.membership
+                val wingMembership = wing.multiblock.membership
+                helper.assertTrue(coreMembership != null, "core did not join a structure")
+                helper.assertTrue(wingMembership != null, "wing did not join a structure")
+                helper.assertValueEqual(coreMembership!!.structureId, wingMembership!!.structureId, "structure id")
+                helper.assertValueEqual(BlockPos.ZERO, coreMembership.offset, "core offset")
+                helper.assertValueEqual(WING_POS, wingMembership.offset, "wing offset")
+            }
+            .thenExecute { helper.destroyBlock(WING_POS) }
+            .thenWaitUntil { helper.assertTrue(core.multiblock.membership == null, "core did not leave after wing broke") }
+            .thenSucceed()
+    }
+
+    /**
+     * A lone `core`, with no `wing` neighbor, must not form a structure. Waits a couple of ticks first so the
+     * formation attempt has actually had a chance to run (and correctly decline) rather than just not having
+     * happened yet.
+     */
+    private fun multiblockIncompleteDoesNotForm(helper: GameTestHelper) {
+        helper.setBlock(POS, DevContent.DEV_MULTIBLOCK_CORE_BLOCK.get())
+        val core = helper.getBlockEntity(POS, DevMultiblockCoreBlockEntity::class.java)
+
+        helper.startSequence()
+            .thenIdle(2)
+            .thenExecute { helper.assertTrue(core.multiblock.membership == null, "core formed a structure with no wing present") }
+            .thenSucceed()
     }
 }

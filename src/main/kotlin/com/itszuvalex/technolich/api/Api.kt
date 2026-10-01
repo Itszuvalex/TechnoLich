@@ -5,6 +5,7 @@ import com.itszuvalex.technolich.api.adapters.IColorable
 import com.itszuvalex.technolich.api.adapters.IModule
 import com.itszuvalex.technolich.api.adapters.Module
 import com.itszuvalex.technolich.core.BlockEntityCore
+import com.itszuvalex.technolich.core.IMultiblockMember
 import net.minecraft.core.Direction
 import net.minecraft.core.component.DataComponentType
 import net.minecraft.core.registries.Registries
@@ -25,6 +26,10 @@ object Capabilities {
     @JvmField
     val COLORABLE: BlockCapability<IColorable, Direction?> =
         BlockCapability.createSided(Identifier.fromNamespaceAndPath(TechnoLich.ID, "colorable"), IColorable::class.java)
+
+    @JvmField
+    val MULTIBLOCK_MEMBER: BlockCapability<IMultiblockMember, Direction?> =
+        BlockCapability.createSided(Identifier.fromNamespaceAndPath(TechnoLich.ID, "multiblock_member"), IMultiblockMember::class.java)
 }
 
 /**
@@ -34,6 +39,10 @@ object Modules {
     @JvmField
     val COLORABLE: IModule<IColorable> =
         Module.registerModule(Identifier.fromNamespaceAndPath(TechnoLich.ID, "colorable"), Capabilities.COLORABLE)
+
+    @JvmField
+    val MULTIBLOCK_MEMBER: IModule<IMultiblockMember> =
+        Module.registerModule(Identifier.fromNamespaceAndPath(TechnoLich.ID, "multiblock_member"), Capabilities.MULTIBLOCK_MEMBER)
 
     /**
      * Forces the built-in modules above to register.
