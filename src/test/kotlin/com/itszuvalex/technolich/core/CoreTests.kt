@@ -64,7 +64,7 @@ class TestableNetwork(
      */
     var takenOverBy: TestableNetwork? = null
 
-    override fun create(): TestableNetwork = TestableNetwork(manager.getNextID(), module, manager, level)
+    override fun create(): TestableNetwork = TestableNetwork(manager.nextId(), module, manager, level)
     override fun levelFor(dimension: Identifier): ILevel? = level?.takeIf { it.dimensionId == dimension }
     override fun networkModule(): IModule<TestableNetworkNode> = module
     override fun register() = manager.addNetwork(this)
@@ -74,7 +74,7 @@ class TestableNetwork(
     }
 }
 
-class TestableNetworkNode(private val loc: Loc4) : TileNetworkNode<TestableNetworkNode, TestableNetwork>() {
+class TestableNetworkNode(override val loc: Loc4) : TileNetworkNode<TestableNetworkNode, TestableNetwork>() {
     /**
      * Locations this node has been told it is connected to, via onConnect/onDisconnect.
      */
@@ -85,7 +85,6 @@ class TestableNetworkNode(private val loc: Loc4) : TileNetworkNode<TestableNetwo
      */
     val removedFrom = ArrayList<TestableNetwork>()
 
-    override fun getLoc(): Loc4 = loc
     override fun onConnect(loc: Loc4) {
         connectedTo.add(loc)
     }
@@ -239,7 +238,7 @@ class NetworkTest {
 
     inner class TestState {
         val level = TestableLevel(dimension)
-        val network = TestableNetwork(networkManager.getNextID(), module, networkManager, level).also { it.register() }
+        val network = TestableNetwork(networkManager.nextId(), module, networkManager, level).also { it.register() }
 
         fun createNode(pos: BlockPos): TestableNetworkNode {
             val e = TestableNetworkNodeBlockEntity(pos, level)
@@ -249,7 +248,7 @@ class NetworkTest {
             return node
         }
 
-        fun newNetwork() = TestableNetwork(networkManager.getNextID(), module, networkManager, level).also { it.register() }
+        fun newNetwork() = TestableNetwork(networkManager.nextId(), module, networkManager, level).also { it.register() }
     }
 
     private fun line(state: TestState, n: Int) = (0 until n).map { x ->
@@ -259,10 +258,10 @@ class NetworkTest {
     @Test
     fun Construct_Empty() {
         val state = TestState()
-        Assertions.assertEquals(0, state.network.size())
-        Assertions.assertEquals(0, state.network.getNodes().count())
-        Assertions.assertEquals(0, state.network.getConnections().size)
-        Assertions.assertEquals(0, state.network.getEdges().count())
+        Assertions.assertEquals(0, state.network.size)
+        Assertions.assertEquals(0, state.network.nodes.count())
+        Assertions.assertEquals(0, state.network.connections.size)
+        Assertions.assertEquals(0, state.network.edges.count())
     }
 
     @Test
@@ -270,21 +269,21 @@ class NetworkTest {
         val state = TestState()
         val node = state.createNode(BlockPos(0, 0, 0))
         state.network.addNode(node)
-        Assertions.assertEquals(1, state.network.size())
-        Assertions.assertTrue(state.network.getNodes().any { it == node })
+        Assertions.assertEquals(1, state.network.size)
+        Assertions.assertTrue(state.network.nodes.any { it == node })
     }
 
     @Test
     fun AddNode_Connectable_AddContainAndAddEdge() {
         val state = TestState()
         val (node, neighbor) = line(state, 2)
-        Assertions.assertEquals(2, state.network.size())
-        Assertions.assertEquals(1, state.network.getEdges().count())
-        val map = state.network.getConnections()
+        Assertions.assertEquals(2, state.network.size)
+        Assertions.assertEquals(1, state.network.edges.count())
+        val map = state.network.connections
         Assertions.assertEquals(2, map.size)
-        Assertions.assertTrue(neighbor.getLoc() in map[node.getLoc()]!!)
-        Assertions.assertTrue(node.getLoc() in map[neighbor.getLoc()]!!)
-        Assertions.assertEquals(listOf(NetworkEdge(node.getLoc(), neighbor.getLoc())), state.network.getEdges().toList())
+        Assertions.assertTrue(neighbor.loc in map[node.loc]!!)
+        Assertions.assertTrue(node.loc in map[neighbor.loc]!!)
+        Assertions.assertEquals(listOf(NetworkEdge(node.loc, neighbor.loc)), state.network.edges.toList())
     }
 
     @Test
@@ -296,10 +295,10 @@ class NetworkTest {
     fun AddNode_Connectable3InLine_AddContainAndAddEdge() {
         val state = TestState()
         val (a, b, c) = line(state, 3)
-        Assertions.assertEquals(3, state.network.size())
+        Assertions.assertEquals(3, state.network.size)
         Assertions.assertEquals(
-            setOf(NetworkEdge(a.getLoc(), b.getLoc()), NetworkEdge(b.getLoc(), c.getLoc())),
-            state.network.getEdges().toSet(),
+            setOf(NetworkEdge(a.loc, b.loc), NetworkEdge(b.loc, c.loc)),
+            state.network.edges.toSet(),
         )
     }
 
@@ -308,10 +307,10 @@ class NetworkTest {
         val state = TestState()
         val (a, b, c) = line(state, 3)
         state.network.removeNode(c)
-        Assertions.assertEquals(2, state.network.size())
-        Assertions.assertEquals(listOf(NetworkEdge(a.getLoc(), b.getLoc())), state.network.getEdges().toList())
-        Assertions.assertFalse(state.network.getConnections().containsKey(c.getLoc()))
-        Assertions.assertEquals(setOf(a.getLoc()), state.network.getConnections()[b.getLoc()])
+        Assertions.assertEquals(2, state.network.size)
+        Assertions.assertEquals(listOf(NetworkEdge(a.loc, b.loc)), state.network.edges.toList())
+        Assertions.assertFalse(state.network.connections.containsKey(c.loc))
+        Assertions.assertEquals(setOf(a.loc), state.network.connections[b.loc])
     }
 
     @Test
@@ -319,17 +318,17 @@ class NetworkTest {
         val state = TestState()
         val (a, b, c) = line(state, 3)
         state.network.removeNode(b)
-        Assertions.assertEquals(0, state.network.size())
-        Assertions.assertEquals(0, state.network.getEdges().count())
-        Assertions.assertNull(networkManager.getNetwork(state.network.ID()))
-        Assertions.assertNotSame(state.network, a.getNetwork())
-        Assertions.assertNotSame(state.network, c.getNetwork())
-        Assertions.assertNotSame(a.getNetwork(), c.getNetwork())
+        Assertions.assertEquals(0, state.network.size)
+        Assertions.assertEquals(0, state.network.edges.count())
+        Assertions.assertNull(networkManager.getNetwork(state.network.id))
+        Assertions.assertNotSame(state.network, a.network)
+        Assertions.assertNotSame(state.network, c.network)
+        Assertions.assertNotSame(a.network, c.network)
         for (n in listOf(a, c)) {
-            Assertions.assertEquals(1, n.getNetwork()!!.size())
-            Assertions.assertEquals(0, n.getNetwork()!!.getEdges().count())
-            Assertions.assertTrue(n.getNetwork()!!.getNodes().any { it == n })
-            Assertions.assertNotNull(networkManager.getNetwork(n.getNetwork()!!.ID()))
+            Assertions.assertEquals(1, n.network!!.size)
+            Assertions.assertEquals(0, n.network!!.edges.count())
+            Assertions.assertTrue(n.network!!.nodes.any { it == n })
+            Assertions.assertNotNull(networkManager.getNetwork(n.network!!.id))
         }
     }
 
@@ -338,13 +337,13 @@ class NetworkTest {
         val state = TestState()
         val (a, b, c) = line(state, 3)
         state.network.removeConnectionNodes(a, b)
-        Assertions.assertEquals(0, state.network.size())
-        Assertions.assertNull(networkManager.getNetwork(state.network.ID()))
-        Assertions.assertEquals(1, a.getNetwork()!!.size())
-        Assertions.assertEquals(2, b.getNetwork()!!.size())
-        Assertions.assertEquals(1, b.getNetwork()!!.getEdges().count())
-        Assertions.assertSame(b.getNetwork(), c.getNetwork())
-        Assertions.assertNotNull(networkManager.getNetwork(b.getNetwork()!!.ID()))
+        Assertions.assertEquals(0, state.network.size)
+        Assertions.assertNull(networkManager.getNetwork(state.network.id))
+        Assertions.assertEquals(1, a.network!!.size)
+        Assertions.assertEquals(2, b.network!!.size)
+        Assertions.assertEquals(1, b.network!!.edges.count())
+        Assertions.assertSame(b.network, c.network)
+        Assertions.assertNotNull(networkManager.getNetwork(b.network!!.id))
     }
 
     @Test
@@ -352,12 +351,12 @@ class NetworkTest {
         val state = TestState()
         val (a, b, c, d) = line(state, 4)
         state.network.removeNode(b)
-        Assertions.assertEquals(0, state.network.size())
-        Assertions.assertNotSame(a.getNetwork(), c.getNetwork())
-        Assertions.assertSame(c.getNetwork(), d.getNetwork())
-        Assertions.assertEquals(1, a.getNetwork()!!.size())
-        Assertions.assertEquals(2, c.getNetwork()!!.size())
-        Assertions.assertEquals(1, c.getNetwork()!!.getEdges().count())
+        Assertions.assertEquals(0, state.network.size)
+        Assertions.assertNotSame(a.network, c.network)
+        Assertions.assertSame(c.network, d.network)
+        Assertions.assertEquals(1, a.network!!.size)
+        Assertions.assertEquals(2, c.network!!.size)
+        Assertions.assertEquals(1, c.network!!.edges.count())
     }
 
     @Test
@@ -368,14 +367,14 @@ class NetworkTest {
         state.network.addNode(node)
         val neighbor = state.createNode(BlockPos(1, 0, 0))
         network2.addNode(neighbor)
-        Assertions.assertEquals(1, state.network.size())
-        Assertions.assertEquals(1, network2.size())
+        Assertions.assertEquals(1, state.network.size)
+        Assertions.assertEquals(1, network2.size)
         state.network.addConnectionNodes(node, neighbor)
-        Assertions.assertSame(state.network, node.getNetwork())
-        Assertions.assertSame(state.network, neighbor.getNetwork())
-        Assertions.assertNull(networkManager.getNetwork(network2.ID()))
-        Assertions.assertEquals(2, state.network.size())
-        Assertions.assertEquals(listOf(NetworkEdge(node.getLoc(), neighbor.getLoc())), state.network.getEdges().toList())
+        Assertions.assertSame(state.network, node.network)
+        Assertions.assertSame(state.network, neighbor.network)
+        Assertions.assertNull(networkManager.getNetwork(network2.id))
+        Assertions.assertEquals(2, state.network.size)
+        Assertions.assertEquals(listOf(NetworkEdge(node.loc, neighbor.loc)), state.network.edges.toList())
     }
 
     @Test
@@ -387,12 +386,12 @@ class NetworkTest {
         state.network.addNode(node)
         val other = state.createNode(BlockPos(5, 0, 0))
         network2.addNode(other)
-        state.network.addConnectionLocs(node.getLoc(), other.getLoc())
-        Assertions.assertEquals(setOf(other.getLoc()), node.connectedTo)
-        Assertions.assertEquals(setOf(node.getLoc()), other.connectedTo)
-        Assertions.assertSame(state.network, other.getNetwork())
-        Assertions.assertNull(networkManager.getNetwork(network2.ID()))
-        Assertions.assertEquals(listOf(NetworkEdge(node.getLoc(), other.getLoc())), state.network.getEdges().toList())
+        state.network.addConnectionLocs(node.loc, other.loc)
+        Assertions.assertEquals(setOf(other.loc), node.connectedTo)
+        Assertions.assertEquals(setOf(node.loc), other.connectedTo)
+        Assertions.assertSame(state.network, other.network)
+        Assertions.assertNull(networkManager.getNetwork(network2.id))
+        Assertions.assertEquals(listOf(NetworkEdge(node.loc, other.loc)), state.network.edges.toList())
     }
 
     @Test
@@ -403,13 +402,13 @@ class NetworkTest {
         val a = state.createNode(BlockPos(0, 0, 0)).also { network2.addNode(it) }
         val b = state.createNode(BlockPos(5, 0, 0)).also { network3.addNode(it) }
         state.network.addConnectionNodes(a, b)
-        Assertions.assertSame(state.network, a.getNetwork())
-        Assertions.assertSame(state.network, b.getNetwork())
-        Assertions.assertEquals(2, state.network.size())
+        Assertions.assertSame(state.network, a.network)
+        Assertions.assertSame(state.network, b.network)
+        Assertions.assertEquals(2, state.network.size)
         Assertions.assertSame(state.network, network2.takenOverBy)
         Assertions.assertSame(state.network, network3.takenOverBy)
-        Assertions.assertNull(networkManager.getNetwork(network2.ID()))
-        Assertions.assertNull(networkManager.getNetwork(network3.ID()))
+        Assertions.assertNull(networkManager.getNetwork(network2.id))
+        Assertions.assertNull(networkManager.getNetwork(network3.id))
     }
 
     @Test
@@ -418,13 +417,13 @@ class NetworkTest {
         val network2 = state.newNetwork()
         val node = state.createNode(BlockPos(0, 0, 0)).also { network2.addNode(it) }
         state.network.addNode(node)
-        Assertions.assertSame(state.network, node.getNetwork())
+        Assertions.assertSame(state.network, node.network)
         Assertions.assertEquals(listOf(network2), node.removedFrom)
-        Assertions.assertEquals(0, network2.size())
-        Assertions.assertNull(networkManager.getNetwork(network2.ID()))
+        Assertions.assertEquals(0, network2.size)
+        Assertions.assertNull(networkManager.getNetwork(network2.id))
         // Adding again is a no-op.
         state.network.addNode(node)
-        Assertions.assertEquals(1, state.network.size())
+        Assertions.assertEquals(1, state.network.size)
         Assertions.assertEquals(listOf(network2), node.removedFrom)
     }
 
@@ -434,9 +433,9 @@ class NetworkTest {
         val state = TestState()
         val nodes = (14..17).map { state.createNode(BlockPos(it, 0, 0)) }
         nodes.forEach(state.network::addNode)
-        Assertions.assertEquals(4, state.network.size())
+        Assertions.assertEquals(4, state.network.size)
         networkManager.onChunkUnload(state.level, ChunkCoord(1, 0))
-        Assertions.assertEquals(2, state.network.size())
+        Assertions.assertEquals(2, state.network.size)
         Assertions.assertTrue(nodes[0].removedFrom.isEmpty())
         Assertions.assertTrue(nodes[1].removedFrom.isEmpty())
         Assertions.assertEquals(listOf(state.network), nodes[2].removedFrom)

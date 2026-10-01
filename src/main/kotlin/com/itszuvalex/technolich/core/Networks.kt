@@ -34,14 +34,14 @@ import java.util.concurrent.atomic.AtomicInteger
  */
 interface INetwork<C : INetworkNode<C, N>, N : INetwork<C, N>> {
     /**
-     * @return Network Identifier. This should be unique.
+     * Network identifier. This should be unique.
      */
-    fun ID(): Int
+    val id: Int
 
     /**
-     * @return LogicalSide hosting this network. Should mostly be [LogicalSide.SERVER].
+     * LogicalSide hosting this network. Should mostly be [LogicalSide.SERVER].
      */
-    fun getSide(): LogicalSide
+    val side: LogicalSide
 
     @Suppress("UNCHECKED_CAST")
     fun castThis(): N = this as N
@@ -56,22 +56,22 @@ interface INetwork<C : INetworkNode<C, N>, N : INetwork<C, N>> {
      */
     fun createWithNodesAndEdges(nodes: Sequence<C>, edges: Sequence<NetworkEdge>): N
 
-    fun getNodes(): Sequence<C>
+    val nodes: Sequence<C>
 
     /**
      * @return Every edge once, as (smaller, larger) location pairs.
      */
-    fun getEdges(): Sequence<NetworkEdge>
+    val edges: Sequence<NetworkEdge>
 
     /**
      * @return All connections, mapped by location.
      */
-    fun getConnections(): Map<Loc4, Set<Loc4>>
+    val connections: Map<Loc4, Set<Loc4>>
 
     /**
      * @return null if loc is not tracked, otherwise the locations it is connected to.
      */
-    fun getConnections(loc: Loc4): Sequence<Loc4>?
+    fun connectionsOf(loc: Loc4): Sequence<Loc4>?
 
     fun canConnectNodes(a: C, b: C): Boolean
 
@@ -136,7 +136,7 @@ interface INetwork<C : INetworkNode<C, N>, N : INetwork<C, N>> {
      */
     fun unregister()
 
-    fun size(): Int
+    val size: Int
 
     fun onTickStart()
 
@@ -155,14 +155,12 @@ interface INetwork<C : INetworkNode<C, N>, N : INetwork<C, N>> {
  * @param N The derived class of the Network
  */
 interface INetworkNode<C : INetworkNode<C, N>, N : INetwork<C, N>> {
-    fun setNetwork(network: N)
-
     /**
-     * @return The network this node is in, or null before it has been added to one.
+     * The network this node is in, or null before it has been added to one.
      */
-    fun getNetwork(): N?
+    var network: N?
 
-    fun getLoc(): Loc4
+    val loc: Loc4
 
     fun refresh()
 
@@ -188,11 +186,11 @@ interface INetworkManager {
 
     fun addNetwork(network: INetwork<*, *>)
 
-    fun networkCount(): Int
+    val networkCount: Int
 
-    fun getNetworks(): Sequence<INetwork<*, *>>
+    val networks: Sequence<INetwork<*, *>>
 
-    fun getNextID(): Int
+    fun nextId(): Int
 
     fun clear()
 
@@ -210,18 +208,18 @@ class NetworkManager : INetworkManager {
     override fun getNetwork(id: Int): INetwork<*, *>? = networkMap[id]
 
     override fun removeNetwork(network: INetwork<*, *>) {
-        networkMap.remove(network.ID())
+        networkMap.remove(network.id)
     }
 
     override fun addNetwork(network: INetwork<*, *>) {
-        networkMap.putIfAbsent(network.ID(), network)
+        networkMap.putIfAbsent(network.id, network)
     }
 
-    override fun networkCount(): Int = networkMap.size
+    override val networkCount: Int get() = networkMap.size
 
-    override fun getNetworks(): Sequence<INetwork<*, *>> = networkMap.values.asSequence()
+    override val networks: Sequence<INetwork<*, *>> get() = networkMap.values.asSequence()
 
-    override fun getNextID(): Int = nextID.getAndIncrement()
+    override fun nextId(): Int = nextID.getAndIncrement()
 
     override fun clear() = networkMap.clear()
 
@@ -237,17 +235,13 @@ class NetworkManager : INetworkManager {
 /**
  * A network of block entities, found through [networkModule] on the block entity at each location.
  */
-abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(private val id: Int, private val side: LogicalSide) :
+abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(override val id: Int, override val side: LogicalSide) :
     INetwork<C, N> {
     private val nodeMap = HashMap<Loc4, C>()
     private val connectionMap = HashMap<Loc4, MutableSet<Loc4>>()
     private val locationTracker = LocationTracker()
 
     abstract fun networkModule(): IModule<C>
-
-    override fun ID(): Int = id
-
-    override fun getSide(): LogicalSide = side
 
     override fun createWithNodesAndEdges(nodes: Sequence<C>, edges: Sequence<NetworkEdge>): N {
         val net = create()
@@ -256,17 +250,17 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
         return net
     }
 
-    override fun getNodes(): Sequence<C> = nodeMap.values.asSequence()
+    override val nodes: Sequence<C> get() = nodeMap.values.asSequence()
 
-    override fun getEdges(): Sequence<NetworkEdge> = connectionMap.asSequence().flatMap { (key, to) ->
+    override val edges: Sequence<NetworkEdge> get() = connectionMap.asSequence().flatMap { (key, to) ->
         to.asSequence().filter { key < it }.map { NetworkEdge(key, it) }
     }
 
-    override fun getConnections(): Map<Loc4, Set<Loc4>> = connectionMap
+    override val connections: Map<Loc4, Set<Loc4>> get() = connectionMap
 
-    override fun getConnections(loc: Loc4): Sequence<Loc4>? = connectionMap[loc]?.asSequence()
+    override fun connectionsOf(loc: Loc4): Sequence<Loc4>? = connectionMap[loc]?.asSequence()
 
-    override fun canConnectNodes(a: C, b: C): Boolean = a.canConnect(b.getLoc()) && b.canConnect(a.getLoc())
+    override fun canConnectNodes(a: C, b: C): Boolean = a.canConnect(b.loc) && b.canConnect(a.loc)
 
     override fun canConnectLocs(a: Loc4, b: Loc4): Boolean {
         val aMod = getModForLoc(a) ?: return false
@@ -275,7 +269,7 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
     }
 
     override fun addConnectionNodes(a: C, b: C) {
-        addConnectionSilently(a.getLoc(), b.getLoc())
+        addConnectionSilently(a.loc, b.loc)
         addConnectionInternal(a, b)
     }
 
@@ -287,8 +281,8 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
     }
 
     override fun removeConnectionNodes(a: C, b: C) {
-        val aLoc = a.getLoc()
-        val bLoc = b.getLoc()
+        val aLoc = a.loc
+        val bLoc = b.loc
         removeConnectionsSilently(aLoc, bLoc)
         a.onDisconnect(bLoc)
         b.onDisconnect(aLoc)
@@ -307,14 +301,14 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
      * can connect to. No-op if the node is already in this network.
      */
     override fun addNode(node: C) {
-        if (nodeMap[node.getLoc()] === node) return
+        if (nodeMap[node.loc] === node) return
         if (!canAddNode(node)) return
         if (!node.canAdd(castThis())) return
-        val previous = node.getNetwork()
+        val previous = node.network
         if (previous != null && previous !== this) previous.removeNode(node)
         addNodeSilently(node)
         node.onAdded(castThis())
-        getNodes().filter { it !== node && canConnectNodes(node, it) }.toList().forEach { addConnectionNodes(it, node) }
+        nodes.filter { it !== node && canConnectNodes(node, it) }.toList().forEach { addConnectionNodes(it, node) }
     }
 
     override fun removeNode(node: C) = removeNodes(sequenceOf(node))
@@ -323,17 +317,17 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
      * Removes the nodes as a batch, calls [INetworkNode.onRemoved] on each, then splits whatever is left.
      */
     override fun removeNodes(nodes: Sequence<C>) {
-        val nodeLocSet = nodes.map { it.getLoc() }.toHashSet()
+        val nodeLocSet = nodes.map { it.loc }.toHashSet()
         if (nodeLocSet.isEmpty()) return
 
         // Locations of all nodes connected to a removed node, excluding removed nodes.
-        val edges = nodeLocSet.asSequence().mapNotNull { getConnections(it) }.flatten().toHashSet()
+        val edges = nodeLocSet.asSequence().mapNotNull { connectionsOf(it) }.flatten().toHashSet()
         edges.removeAll(nodeLocSet)
 
         val removed = ArrayList<C>()
         nodeLocSet.forEach { a ->
             // Realize the list, as we're about to modify the underlying structure.
-            getConnections(a)?.toList()?.forEach { c -> removeConnectionBatch(a, c) }
+            connectionsOf(a)?.toList()?.forEach { c -> removeConnectionBatch(a, c) }
             nodeMap.remove(a)?.let(removed::add)
             locationTracker.removeLocation(a)
         }
@@ -341,7 +335,7 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
 
         split(edges)
 
-        if (size() == 0) {
+        if (size == 0) {
             clear()
             unregister()
         }
@@ -359,7 +353,7 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
         // Only split if necessary
         if (networks.size <= 1) return
 
-        val edgeTuples = getEdges().toHashSet()
+        val edgeTuples = this.edges.toHashSet()
         networks.forEach { networkNodes ->
             val network = createWithNodesAndEdges(
                 networkNodes.asSequence().mapNotNull { nodeMap[it] },
@@ -377,8 +371,8 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
 
     override fun takeover(network: N) {
         network.onTakeover(castThis())
-        network.getNodes().toList().forEach { addNodeSilently(it) }
-        network.getEdges().toList().forEach { addConnectionSilently(it.a, it.b) }
+        network.nodes.toList().forEach { addNodeSilently(it) }
+        network.edges.toList().forEach { addConnectionSilently(it.a, it.b) }
         network.clear()
         network.unregister()
     }
@@ -391,17 +385,17 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
         locationTracker.clear()
     }
 
-    override fun refresh() = getNodes().forEach { it.refresh() }
+    override fun refresh() = nodes.forEach { it.refresh() }
 
     override fun register() {
-        TechnoLich.NETWORK_MANAGER.get(getSide())?.addNetwork(this)
+        TechnoLich.NETWORK_MANAGER.get(side)?.addNetwork(this)
     }
 
     override fun unregister() {
-        TechnoLich.NETWORK_MANAGER.get(getSide())?.removeNetwork(this)
+        TechnoLich.NETWORK_MANAGER.get(side)?.removeNetwork(this)
     }
 
-    override fun size(): Int = nodeMap.size
+    override val size: Int get() = nodeMap.size
 
     override fun onTickStart() {}
 
@@ -432,12 +426,12 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
     private fun addConnectionInternal(a: C, b: C) {
         absorb(a)
         absorb(b)
-        a.onConnect(b.getLoc())
-        b.onConnect(a.getLoc())
+        a.onConnect(b.loc)
+        b.onConnect(a.loc)
     }
 
     private fun absorb(node: C) {
-        val network = node.getNetwork()
+        val network = node.network
         if (network === this) return
         if (network == null) {
             addNodeSilently(node)
@@ -465,9 +459,9 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
     }
 
     private fun addNodeSilently(node: C) {
-        nodeMap[node.getLoc()] = node
-        node.setNetwork(castThis())
-        locationTracker.trackLocation(node.getLoc())
+        nodeMap[node.loc] = node
+        node.network = castThis()
+        locationTracker.trackLocation(node.loc)
     }
 
     object NetworkExplorer {
@@ -480,7 +474,7 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
             val explored = hashSetOf(start)
             val frontier = ArrayDeque<Loc4>().apply { add(start) }
             while (frontier.isNotEmpty()) {
-                network.getConnections(frontier.poll())?.forEach { if (explored.add(it)) frontier.add(it) }
+                network.connectionsOf(frontier.poll())?.forEach { if (explored.add(it)) frontier.add(it) }
             }
             return explored
         }
@@ -488,16 +482,9 @@ abstract class TileNetwork<C : INetworkNode<C, N>, N : TileNetwork<C, N>>(privat
 }
 
 abstract class TileNetworkNode<C : TileNetworkNode<C, N>, N : TileNetwork<C, N>> : INetworkNode<C, N> {
-    @JvmField
-    protected var currentNetwork: N? = null
+    override var network: N? = null
 
-    override fun setNetwork(network: N) {
-        currentNetwork = network
-    }
-
-    override fun getNetwork(): N? = currentNetwork
-
-    override fun canConnect(loc: Loc4): Boolean = getLoc().isNeighbor(loc)
+    override fun canConnect(loc: Loc4): Boolean = this.loc.isNeighbor(loc)
 
     override fun canAdd(network: N): Boolean = true
 
