@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  # Pushes only, never pull_request: this is a public repo on a self-hosted runner, and a pull_request run
+  # uses the workflow file from the pull request, so a fork could run anything on the runner. Only people
+  # with write access can push, and a pushed branch's run still shows on its pull request.
+  push:
+    branches: ['**']
+    # A version tag builds a release: same checks, then the jars go on the tag's GitHub release.
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: nas-linux
+    timeout-minutes: 60
+    permissions:
+      contents: write # attach jars to releases
+    steps:
+      - uses: actions/checkout@v4
+
+      # The build compiles with a JDK 25 toolchain; NeoForge's tooling also needs JDK 21.
+      - id: jdk21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - id: jdk25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 25
+
+      - name: Build and unit tests
+        run: ./gradlew build --stacktrace "-Porg.gradle.java.installations.paths=${{ steps.jdk21.outputs.path }},${{ steps.jdk25.outputs.path }}"
+
+      - name: Game tests
+        run: ./gradlew runGameTestServer --stacktrace "-Porg.gradle.java.installations.paths=${{ steps.jdk21.outputs.path }},${{ steps.jdk25.outputs.path }}"
+
+      # Everything else is validation only: nothing is uploaded.
+      - name: Attach jars to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/libs/*.jar
+          fail_on_unmatched_files: true
