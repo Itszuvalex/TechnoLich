@@ -32,6 +32,8 @@ org.gradle.java.installations.paths=/home/cchharris/.gradle/jdks/jdk25,/home/cch
 org.gradle.java.installations.auto-download=false
 ```
 
+On NixOS, run Gradle inside the repo's dev shell (`flake.nix`): `nix develop`, or direnv with a local `.envrc` containing `use flake` (`.envrc` is not committed). It puts JDK 25 on `PATH`/`JAVA_HOME` and the native libraries the dev client loads on `LD_LIBRARY_PATH`. Without it, `runClient` fails with `GLX: Failed to load GLX`, because NixOS keeps the GPU drivers in `/run/opengl-driver/lib` with no GL dispatcher on the loader path. Other platforms ignore the flake.
+
 Mod metadata is generated from `src/main/templates/META-INF/neoforge.mods.toml` using the `mod_*` properties in `gradle.properties`.
 
 ## Documentation
